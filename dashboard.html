@@ -1,0 +1,4125 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>ড্যাশবোর্ড</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+
+  <script src="components-inline.js"></script>
+  <script src="grid.js"></script>
+  
+  <style>
+    /* ======================================================== */
+    /* ভেরিয়েবল এবং বেসিক স্টাইল */
+    /* ======================================================== */
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --success: #16a34a;
+      --success-hover: #15803d;
+      --danger: #dc2626;
+      --danger-hover: #b91c1c;
+      --warning: #f59e0b;
+      --info: #0ea5e9;
+      --gray: #6b7280;
+      --light-gray: #f3f4f6;
+      --white: #ffffff;
+      --dark: #1f2937;
+      --background: #f5f7fa; 
+      --card-background: #ffffff;
+      --text-color: var(--dark);
+      --secondary-text: var(--gray);
+      --border-color: #e5e7eb;
+      --sidebar-width: 250px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Noto Sans Bengali', sans-serif;
+    }
+
+    body {
+      background-color: var(--background);
+      color: var(--text-color);
+      overflow-x: hidden;
+    }
+
+    /* ======================================================== */
+    /* লেআউট স্টাইল */
+    /* ======================================================== */
+    .admin-container {
+      display: flex;
+      min-height: 100vh;
+      padding-top: 60px;
+    }
+
+    #sidebar-container {
+      flex-shrink: 0;
+    }
+
+    .admin-main {
+      flex: 1;
+      padding: 20px;
+      background-color: var(--background);
+      min-height: calc(100vh - 60px);
+      overflow-x: hidden;
+    }
+
+    /* ======================================================== */
+    /* ড্যাশবোর্ড কার্ড স্টাইল */
+    /* ======================================================== */
+    .dashboard-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 15px;
+      margin-bottom: 25px;
+    }
+    
+    .card {
+      background-color: var(--white);
+      border-radius: 10px;
+      padding: 18px 15px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      position: relative;
+      overflow: hidden;
+      text-align: center;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .card h3 {
+      color: var(--dark);
+      font-size: 14px;
+      margin-bottom: 10px;
+      font-weight: 600;
+      line-height: 1.3;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .card p {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--dark);
+      margin: 0;
+    }
+    
+    /* কার্ড কালার */
+    .called-apps p { color: var(--success); }
+    .not-called-apps p { color: var(--danger); }
+    .token-given-apps p { color: var(--warning); }
+    .token-not-given-apps p { color: var(--primary); }
+    .thursday p { color: var(--primary); }
+    .friday p { color: #8b5cf6; }
+    .total-appointments p { color: #0ea5e9; }
+    .pending p { color: #f59e0b; }
+    .total p { color: #6366f1; }
+    .available p { color: var(--success); }
+    .new-call p { color: #10b981; }
+    .old-call p { color: #8b5cf6; }
+
+    .grid-no-selection {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 20px;
+        color: #6b7280;
+        font-style: italic;
+      }
+
+  /* ======================================================== */
+/* ফিল্টার সেকশন স্টাইল - management.html এর মতো */
+/* ======================================================== */
+.filter-section {
+  background-color: var(--white);
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  margin-bottom: 20px;
+}
+
+/* ডেস্কটপ ভিউ (1025px+): সবকিছু বাম পাশে */
+@media (min-width: 1025px) {
+  .admin-table-header {
+    display: flex;
+    justify-content: flex-start; /* পরিবর্তন: space-between থেকে flex-start */
+    align-items: center;
+    margin-bottom: 15px;
+    flex-wrap: nowrap;
+    gap: 15px; /* গ্যাপ বাড়ানো */
+  }
+  
+  .admin-table-header h2 {
+    font-size: 18px;
+    color: var(--dark);
+    margin: 0;
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-width: 160px;
+    order: 1; /* প্রথমে টাইটেল */
+  }
+  
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* গ্যাপ বাড়ানো */
+    flex: 1;
+    flex-wrap: nowrap;
+    justify-content: flex-start; /* পরিবর্তন: flex-end থেকে flex-start */
+    order: 2; /* দ্বিতীয়তে ফিল্টার+সার্চ */
+  }
+  
+  .filter-group {
+    display: flex;
+    gap: 8px; /* গ্যাপ বাড়ানো */
+    flex-wrap: nowrap;
+    flex: none; /* পরিবর্তন: flex: 1 থেকে flex: none */
+  }
+  
+  .filter-group select {
+    padding: 7px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-family: 'Noto Sans Bengali', sans-serif;
+    font-size: 13px;
+    background-color: var(--white);
+    color: var(--dark);
+    cursor: pointer;
+    min-width: 110px;
+    max-width: 120px;
+    height: 36px;
+    flex-shrink: 0;
+  }
+  
+  .search-box {
+    position: relative;
+    width: 180px;
+    flex-shrink: 0;
+    margin-left: 10px; /* ফিল্টার থেকে স্পেস */
+  }
+  
+  .search-box input {
+    width: 100%;
+    padding: 7px 10px 7px 32px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-family: 'Noto Sans Bengali', sans-serif;
+    font-size: 13px;
+    height: 36px;
+    box-sizing: border-box;
+  }
+  
+  .add-btn {
+    padding: 7px 14px;
+    background-color: var(--success);
+    color: var(--white);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.2s;
+    white-space: nowrap;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 0;
+    height: 36px;
+    margin-left: 10px; /* সার্চ থেকে স্পেস */
+  }
+  
+  /* মোবাইল ভিউ সম্পূর্ণ লুকানো */
+  .mobile-filter-row-1,
+  .mobile-filter-row-2,
+  .mobile-add-btn {
+    display: none !important;
+  }
+  
+  .search-icon {
+    width: 14px;
+    height: 14px;
+    left: 10px;
+  }
+}
+
+/* ট্যাবলেট ভিউ (769px - 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .admin-table-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  
+  .admin-table-header h2 {
+    text-align: center;
+    width: 100%;
+    margin-bottom: 10px;
+    font-size: 16px;
+  }
+  
+  .header-actions {
+    width: 100%;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .filter-group {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .filter-group select {
+    flex: 1 1 calc(33.333% - 6px);
+    min-width: 110px;
+    max-width: 160px;
+    padding: 8px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-family: 'Noto Sans Bengali', sans-serif;
+    font-size: 13px;
+    background-color: var(--white);
+    color: var(--dark);
+    cursor: pointer;
+    height: 36px;
+  }
+  
+  .search-box {
+    width: 100%;
+    position: relative;
+  }
+  
+  .search-box input {
+    width: 100%;
+    padding: 8px 10px 8px 32px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-family: 'Noto Sans Bengali', sans-serif;
+    font-size: 13px;
+    height: 36px;
+    box-sizing: border-box;
+  }
+  
+  .add-btn {
+    width: 100%;
+    padding: 9px;
+    background-color: var(--success);
+    color: var(--white);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.2s;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    height: 36px;
+  }
+  
+  /* মোবাইল ভিউ সম্পূর্ণ লুকানো */
+  .mobile-filter-row-1,
+  .mobile-filter-row-2,
+  .mobile-add-btn {
+    display: none !important;
+  }
+  
+  .search-icon {
+    width: 14px;
+    height: 14px;
+    left: 10px;
+  }
+}
+
+/* ট্যাবলেট ভিউ (769px - 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .admin-table-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  
+  .admin-table-header h2 {
+    text-align: center;
+    width: 100%;
+    margin-bottom: 8px;
+    font-size: 16px;
+  }
+  
+  .header-actions {
+    width: 100%;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .filter-group {
+    width: 100%;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .filter-group select {
+    flex: 1 1 calc(33.333% - 4px);
+    min-width: 100px;
+    max-width: 140px;
+    padding: 6px 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    font-family: 'Noto Sans Bengali', sans-serif;
+    font-size: 12px;
+    background-color: var(--white);
+    color: var(--dark);
+    cursor: pointer;
+    height: 34px;
+  }
+  
+  .search-box {
+    width: 100%;
+    position: relative;
+  }
+  
+  .search-box input {
+    width: 100%;
+    padding: 6px 8px 6px 30px;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    font-family: 'Noto Sans Bengali', sans-serif;
+    font-size: 12px;
+    height: 34px;
+    box-sizing: border-box;
+  }
+  
+  .add-btn {
+    width: 100%;
+    padding: 8px;
+    background-color: var(--success);
+    color: var(--white);
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.2s;
+    font-size: 12px;
+    display: flex !important; /* important যোগ করুন */
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    height: 34px;
+  }
+  
+  /* মোবাইল ভিউ সম্পূর্ণ লুকানো */
+  .mobile-filter-row-1,
+  .mobile-filter-row-2,
+  .mobile-add-btn {
+    display: none !important;
+  }
+  
+  /* ট্যাবলেট ভিউ শো */
+  .header-actions {
+    display: flex !important;
+  }
+  
+  .search-icon {
+    width: 14px;
+    height: 14px;
+    left: 10px;
+  }
+}
+
+/* মোবাইল ভিউ (768px নিচে): ৪ লাইন */
+@media (max-width: 768px) {
+  /* ডেস্কটপ ভিউ লুকানো */
+  .header-actions {
+    display: none !important;
+  }
+  
+  .admin-table-header {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 15px;
+    width: 100%;
+  }
+  
+  /* লাইন ১: আজকের অ্যাপয়েন্টমেন্ট (সেন্টারে) */
+  .admin-table-header h2 {
+    font-size: 16px;
+    color: var(--dark);
+    text-align: center;
+    margin: 0;
+    width: 100%;
+    order: 1;
+    display: block !important;
+  }
+  
+  /* লাইন ২: ফিল্টার ১, ২, ৩ - 3টি এক লাইনে */
+  .mobile-filter-row-1 {
+    display: flex !important;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    order: 2;
+  }
+  
+  .mobile-filter-row-1 .filter-group {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    width: 100%;
+  }
+  
+  .mobile-filter-row-1 .filter-group select {
+    width: 100%;
+    font-size: 13px;
+    padding: 8px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-family: 'Noto Sans Bengali', sans-serif;
+    background-color: var(--white);
+    color: var(--dark);
+    cursor: pointer;
+    display: block !important;
+    height: 38px;
+    box-sizing: border-box;
+  }
+  
+  /* লাইন ৩: ফিল্টার ৪, ৫, সার্চ - 3টি এক লাইনে */
+  .mobile-filter-row-2 {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    width: 100%;
+    order: 3;
+    align-items: stretch;
+  }
+  
+  .mobile-filter-row-2 .filter-group {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    grid-column: span 2;
+  }
+  
+  .mobile-filter-row-2 .filter-group select {
+    width: 100%;
+    font-size: 13px;
+    padding: 8px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-family: 'Noto Sans Bengali', sans-serif;
+    background-color: var(--white);
+    color: var(--dark);
+    cursor: pointer;
+    display: block !important;
+    height: 38px;
+    box-sizing: border-box;
+  }
+  
+  .mobile-search-box {
+    position: relative;
+    display: block !important;
+    grid-column: span 1;
+  }
+  
+  .mobile-search-box input {
+    width: 100%;
+    padding: 8px 10px 8px 35px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-family: 'Noto Sans Bengali', sans-serif;
+    font-size: 13px;
+    display: block !important;
+    height: 38px;
+    box-sizing: border-box;
+  }
+  
+  /* লাইন ৪: সিরিয়াল যুক্ত করুন বাটন */
+  .mobile-add-btn {
+    width: 100%;
+    padding: 10px;
+    background-color: var(--success);
+    color: var(--white);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.2s;
+    font-size: 14px;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 40px;
+    order: 4;
+    margin-top: 5px;
+  }
+  
+  /* ডেস্কটপ এলিমেন্ট লুকানো */
+  .filter-group:not(.mobile-filter-row-1 .filter-group):not(.mobile-filter-row-2 .filter-group),
+  .search-box:not(.mobile-search-box),
+  .add-btn:not(.mobile-add-btn) {
+    display: none !important;
+  }
+}
+
+/* কমন স্টাইলস */
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: var(--gray);
+}
+
+.filter-group select:focus,
+.mobile-filter-row-1 .filter-group select:focus,
+.mobile-filter-row-2 .filter-group select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.search-box input:focus,
+.mobile-search-box input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.add-btn:hover,
+.mobile-add-btn:hover {
+  background-color: var(--success-hover);
+}
+
+.stats-info {
+  background-color: #eff6ff;
+  color: var(--primary);
+  padding: 12px 20px;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 14px;
+  margin-top: 15px;
+}
+
+/* ছোট মোবাইলের জন্য অতিরিক্ত স্টাইল (480px নিচে) */
+@media (max-width: 480px) {
+  /* লাইন ২: ফিল্টার ১, ২, ৩ */
+  .mobile-filter-row-1 .filter-group {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  
+  .mobile-filter-row-1 .filter-group select {
+    font-size: 12px;
+    padding: 7px 8px;
+    height: 36px;
+  }
+  
+  /* লাইন ৩: ফিল্টার ৪, ৫, সার্চ */
+  .mobile-filter-row-2 {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  
+  .mobile-filter-row-2 .filter-group {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+    grid-column: span 2;
+  }
+  
+  .mobile-filter-row-2 .filter-group select {
+    font-size: 12px;
+    padding: 7px 8px;
+    height: 36px;
+  }
+  
+  .mobile-search-box input {
+    font-size: 12px;
+    padding: 7px 8px 7px 30px;
+    height: 36px;
+  }
+  
+  .mobile-add-btn {
+    font-size: 13px;
+    padding: 8px;
+    height: 38px;
+    margin-top: 6px;
+  }
+}
+
+/* খুব ছোট ফোনের জন্য (360px নিচে) */
+@media (max-width: 360px) {
+  .filter-section {
+    padding: 15px;
+  }
+  
+  .admin-table-header h2 {
+    font-size: 15px;
+  }
+  
+  /* লাইন ২: ফিল্টার ১, ২, ৩ */
+  .mobile-filter-row-1 .filter-group {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+  }
+  
+  /* লাইন ৩: ফিল্টার ৪, ৫, সার্চ */
+  .mobile-filter-row-2 {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+  }
+  
+  .mobile-filter-row-2 .filter-group {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 5px;
+    grid-column: span 2;
+  }
+  
+  .mobile-filter-row-1 .filter-group select,
+  .mobile-filter-row-2 .filter-group select {
+    font-size: 11px;
+    padding: 6px 7px;
+    height: 34px;
+  }
+  
+  .mobile-search-box input {
+    font-size: 11px;
+    padding: 6px 7px 6px 28px;
+    height: 34px;
+  }
+  
+  .mobile-add-btn {
+    font-size: 12px;
+    padding: 7px;
+    height: 36px;
+  }
+}
+    
+    .stats-info {
+      background-color: #eff6ff;
+      color: var(--primary);
+      padding: 12px 20px;
+      border-radius: 8px;
+      text-align: center;
+      font-weight: 600;
+      font-size: 14px;
+      margin-top: 15px;
+    }
+
+    /* ======================================================== */
+    /* টেবিল স্টাইল */
+    /* ======================================================== */
+    .table-container {
+      background-color: var(--card-background);
+      padding: 0;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      overflow: hidden;
+      margin-top: 20px;
+    }
+    
+    .table-wrapper {
+      overflow-x: auto;
+      max-height: calc(100vh - 300px);
+      min-height: 400px;
+    }
+    
+    .table-wrapper::-webkit-scrollbar {
+      height: 8px;
+      width: 8px;
+    }
+    
+    .table-wrapper::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 4px;
+    }
+    
+    .table-wrapper::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 4px;
+    }
+    
+    .table-wrapper::-webkit-scrollbar-thumb:hover {
+      background: #a1a1a1;
+    }
+    
+    #appointmentsTable {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1200px;
+    }
+    
+    #appointmentsTable th {
+      background-color: var(--light-gray);
+      padding: 14px 16px;
+      text-align: left;
+      font-weight: 600;
+      color: var(--dark);
+      font-size: 14px;
+      white-space: nowrap;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      border-bottom: 2px solid var(--border-color);
+    }
+    
+    #appointmentsTable td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 13px;
+      vertical-align: middle;
+    }
+    
+    #appointmentsTable tr:hover {
+      background-color: rgba(243, 244, 246, 0.5);
+    }
+    
+    #appointmentsTable tr:last-child td {
+      border-bottom: none;
+    }
+    
+    /* স্ট্যাটাস ব্যাজ */
+    .status-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+      min-width: 100px;
+      text-align: center;
+    }
+    
+    .status-called {
+      background-color: #dcfce7;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+    
+    .status-not-called {
+      background-color: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fde68a;
+    }
+    
+    .status-token-given {
+      background-color: #dbeafe;
+      color: #1e40af;
+      border: 1px solid #bfdbfe;
+    }
+    
+    .status-token-not-given {
+      background-color: #f3e8ff;
+      color: #5b21b6;
+      border: 1px solid #e9d5ff;
+    }
+    
+    /* অ্যাকশন বাটন */
+    .action-btn {
+      padding: 6px 14px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      min-width: 90px;
+      white-space: nowrap;
+    }
+    
+    .btn-call {
+      background-color: var(--primary);
+      color: white;
+    }
+    
+    .btn-call:hover {
+      background-color: var(--primary-hover);
+    }
+    
+    .btn-call-undo {
+      background-color: var(--danger);
+      color: white;
+    }
+    
+    .btn-call-undo:hover {
+      background-color: var(--danger-hover);
+    }
+    
+    .btn-token {
+      background-color: var(--warning);
+      color: white;
+    }
+    
+    .btn-token:hover {
+      background-color: #eab308;
+    }
+
+    /* টোকেন মোডাল স্টাইল */
+.token-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex; /* এটি মোডালটিকে মাঝখানে দেখাবে */
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  backdrop-filter: blur(4px);
+}
+
+.token-modal-container {
+  background: white;
+  width: 90%;
+  max-width: 450px;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  animation: modalScaleUp 0.3s ease;
+  overflow: hidden;
+}
+
+.token-modal-header {
+  background: #2563eb;
+  color: white;
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.token-modal-body {
+  padding: 20px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.token-form-group {
+  margin-bottom: 15px;
+}
+
+.token-form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.token-form-group input, .token-form-group select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.token-modal-actions {
+  padding: 16px;
+  background: #f9fafb;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.btn-save-print {
+  background: #16a34a;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.btn-cancel-modal {
+  background: #9ca3af;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+@keyframes modalScaleUp {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+    
+/*    .btn-token-undo {
+      background-color: var(--info);
+      color: white;
+    }
+    
+    .btn-token-undo:hover {
+      background-color: #0284c7;
+    }*/
+    
+    /* লোডিং মেসেজ */
+    #loadingMessage {
+      text-align: center;
+      padding: 40px;
+      color: var(--gray);
+      font-size: 16px;
+      display: none;
+    }
+    
+    #loadingMessage.show {
+      display: block;
+    }
+
+    /* ======================================================== */
+    /* কুইক সিরিয়াল মোডাল */
+    /* ======================================================== */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 2000;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .modal-content {
+      background-color: var(--white);
+      padding: 25px;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 600px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      position: relative;
+      max-height: 85vh;
+      overflow-y: auto;
+    }
+    
+    .close-btn {
+      position: absolute;
+      top: 20px;
+      right: 25px;
+      background: none;
+      border: none;
+      font-size: 28px;
+      color: var(--gray);
+      cursor: pointer;
+      line-height: 1;
+      padding: 0;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .close-btn:hover {
+      color: var(--dark);
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: var(--dark);
+      font-size: 14px;
+    }
+    
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-family: 'Noto Sans Bengali', sans-serif;
+      font-size: 14px;
+    }
+    
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    
+    .age-inputs {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .age-inputs > div {
+      flex: 1;
+    }
+    
+    /* রোগীর ধরন কার্ড */
+    .serial-types {
+      display: flex;
+      gap: 10px;
+      margin: 15px 0;
+    }
+    
+    .serial-type-card {
+      flex: 1;
+      padding: 12px;
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .serial-type-card:hover {
+      border-color: var(--primary);
+      background-color: rgba(37, 99, 235, 0.05);
+    }
+    
+    .serial-type-card.selected {
+      border-color: var(--primary);
+      background-color: rgba(37, 99, 235, 0.1);
+    }
+    
+    .serial-type-card h4 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--dark);
+    }
+    
+    .form-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 25px;
+    }
+    
+    .form-actions button {
+      flex: 1;
+      padding: 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      transition: background-color 0.2s ease;
+      border: none;
+    }
+    
+    .submit-btn {
+      background-color: var(--primary);
+      color: white;
+    }
+    
+    .submit-btn:hover {
+      background-color: var(--primary-hover);
+    }
+    
+    .cancel-btn-modal {
+      background-color: var(--gray);
+      color: white;
+    }
+    
+    .cancel-btn-modal:hover {
+      background-color: #4b5563;
+    }
+
+
+
+    /* ======================================================== */
+    /* মোবাইল রেসপনসিভ */
+    /* ======================================================== */
+    @media (max-width: 768px) {
+      .admin-container {
+        padding-top: 60px;
+      }
+      
+      .admin-main {
+        padding: 15px;
+        min-height: calc(100vh - 60px);
+      }
+      
+      .dashboard-cards {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+      }
+      
+      .card {
+        padding: 15px 10px;
+      }
+      
+      .card h3 {
+        font-size: 13px;
+        height: 36px;
+      }
+      
+      .card p {
+        font-size: 22px;
+      }
+    
+      .filter-section {
+        padding: 15px;
+      }
+      
+      .table-wrapper {
+        max-height: calc(100vh - 100px);
+      }
+      
+      .modal-content {
+        margin: 10px;
+        width: calc(100% - 20px);
+        padding: 20px 15px;
+      }
+      
+      .age-inputs {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 8px;
+        margin-top: 5px;
+      }
+      
+      /* ছোট মোবাইলের জন্য ফিল্টার স্টাইল */
+      @media (max-width: 480px) {
+        .mobile-filter-row-1 .filter-group select {
+          flex: 1 1 100%;
+          margin-bottom: 5px;
+          font-size: 12px;
+          padding: 7px 8px;
+        }
+        
+        .mobile-filter-row-2 .filter-group select {
+          flex: 1 1 100%;
+          margin-bottom: 5px;
+          font-size: 12px;
+          padding: 7px 8px;
+        }
+        
+        .mobile-search-box input {
+          font-size: 12px;
+          padding: 7px 8px 7px 30px;
+        }
+        
+        .mobile-add-btn {
+          font-size: 13px;
+          padding: 8px;
+        }
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .admin-main {
+        padding: 12px;
+      }
+      
+      .dashboard-cards {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+      }
+      
+      .card {
+        padding: 12px 8px;
+      }
+      
+      .card h3 {
+        font-size: 11px;
+        height: 30px;
+      }
+      
+      .card p {
+        font-size: 18px;
+      }
+      
+      .status-badge {
+        min-width: 80px;
+        font-size: 11px;
+        padding: 3px 8px;
+      }
+      
+      .action-btn {
+        min-width: 75px;
+        padding: 5px 10px;
+        font-size: 12px;
+      }
+      
+      #appointmentsTable th,
+      #appointmentsTable td {
+        padding: 10px 8px;
+        font-size: 12px;
+      }
+      
+      .stats-info {
+        padding: 10px 15px;
+        font-size: 13px;
+      }
+    }
+    
+    @media (max-width: 360px) {
+      .dashboard-cards {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ======================================================== */
+    /* ল্যান্ডস্কেপ মোড */
+    /* ======================================================== */
+    @media (max-height: 600px) and (orientation: landscape) {
+      .dashboard-cards {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+      }
+      
+      .card h3 {
+        font-size: 11px;
+        height: 28px;
+      }
+      
+      .card p {
+        font-size: 18px;
+      }
+      
+      .table-wrapper {
+        max-height: 300px;
+      }
+    }
+  </style>
+</head>
+<body data-auto-load-components="true"> 
+
+  <div id="header-container"></div> 
+
+  <div class="admin-container">
+    <div id="sidebar-container"></div> 
+    
+    <main class="admin-main">
+      <h2 style="margin-bottom: 20px; color: var(--dark); font-size: 22px;">রিয়েল-টাইম সিরিয়াল ট্র্যাকিং</h2> 
+      
+      <!-- ড্যাশবোর্ড কার্ড -->
+      <div class="dashboard-cards"> 
+        <div class="card thursday"> <h3>বৃহস্পতিবার এপয়েন্টমেন্ট</h3> <p id="thursdayAppointments">০</p> </div>
+        <div class="card friday"> <h3>শুক্রবার এপয়েন্টমেন্ট</h3> <p id="fridayAppointments">০</p> </div>
+        <div class="card total-appointments"> <h3>মোট এপয়েন্টমেন্ট</h3> <p id="totalAppointments">০</p> </div>
+        <div class="card pending"> <h3>পেন্ডিং সিরিয়াল</h3> <p id="pendingSerials">০</p> </div>
+        <div class="card total"> <h3>মোট সিরিয়াল স্লট</h3> <p id="totalSerials">০</p> </div>
+        <div class="card available"> <h3>মোট এভেইলেবল</h3> <p id="availableSerials">০</p> </div>
+        <div class="card called-apps"> <h3>কল করা হয়েছে</h3> <p id="called-count">০</p> </div> 
+        <div class="card not-called-apps"> <h3>কল করা হয় নি</h3> <p id="not-called-count">০</p> </div> 
+        <div class="card token-given-apps"> <h3>টোকেন দেওয়া হয়েছে</h3> <p id="token-given-count">০</p> </div> 
+        <div class="card token-not-given-apps"> <h3>টোকেন দেওয়া হয় নি</h3> <p id="token-not-given-count">০</p> </div>
+        <div class="card new-call"> <h3>নতুন রোগী লাস্ট কল</h3> <p id="newPatientLastCall">০</p> </div>
+        <div class="card old-call"> <h3>পুরাতন রোগী লাস্ট কল</h3> <p id="oldPatientLastCall">০</p> </div>
+      </div>
+      
+      <!-- ফিল্টার সেকশন - management.html এর মতো -->
+      <div class="filter-section">
+        <div class="admin-table-header">
+          <h2>আজকের অ্যাপয়েন্টমেন্ট</h2>
+          
+          <!-- ডেস্কটপ ভিউ (1025px+): সবকিছু এক লাইনে -->
+          <div class="header-actions">
+            <div class="filter-group">
+              <select id="dayFilterSerial">
+                <option value="all">সকল দিন</option>
+                <option value="Thursday">বৃহস্পতিবার</option>
+                <option value="Friday">শুক্রবার</option>
+              </select>
+              <select id="typeFilterSerial">
+                <option value="all">সকল ধরন</option>
+                <option value="new">নতুন রোগী</option>
+                <option value="old">পুরাতন রোগী</option>
+              </select>
+              <select id="timeFilterSerial">
+                <option value="all">সকল সময়</option>
+              </select>
+              <select id="call-status-filter">
+                <option value="all">কল স্ট্যাটাস</option>
+                <option value="called">কল করা হয়েছে</option>
+                <option value="not_called">কল করা হয়নি</option>
+              </select>
+              <select id="token-status-filter">
+                <option value="all">টোকেন স্ট্যাটাস</option>
+                <option value="given">টোকেন দেওয়া হয়েছে</option>
+                <option value="not_given">টোকেন দেওয়া হয়নি</option>
+              </select>
+            </div>
+            <div class="search-box">
+              <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+              </svg>
+              <input type="text" id="searchInput" placeholder="নাম, ফোন বা সিরিয়াল দিয়ে খুঁজুন..." />
+            </div>
+            <button class="add-btn" id="openAddSerialModalBtn">
+              <i class="fas fa-plus-circle"></i>
+              সিরিয়াল যুক্ত করুন
+            </button>
+          </div>
+          
+          <!-- মোবাইল ভিউ (768px নিচে): ৪ লাইন -->
+          <!-- লাইন ২: ফিল্টার ১, ২, ৩ -->
+          <div class="mobile-filter-row-1">
+            <div class="filter-group">
+              <select id="dayFilterSerialMobile">
+                <option value="all">সকল দিন</option>
+                <option value="Thursday">বৃহস্পতিবার</option>
+                <option value="Friday">শুক্রবার</option>
+              </select>
+              <select id="typeFilterSerialMobile">
+                <option value="all">সকল ধরন</option>
+                <option value="new">নতুন রোগী</option>
+                <option value="old">পুরাতন রোগী</option>
+              </select>
+              <select id="timeFilterSerialMobile">
+                <option value="all">সকল সময়</option>
+              </select>
+            </div>
+          </div>
+          
+          <!-- লাইন ৩: ফিল্টার ৪, ৫, সার্চ -->
+          <div class="mobile-filter-row-2">
+            <div class="filter-group">
+              <select id="call-status-filter-mobile">
+                <option value="all">কল স্ট্যাটাস</option>
+                <option value="called">কল করা হয়েছে</option>
+                <option value="not_called">কল করা হয়নি</option>
+              </select>
+              <select id="token-status-filter-mobile">
+                <option value="all">টোকেন স্ট্যাটাস</option>
+                <option value="given">টোকেন দেওয়া হয়েছে</option>
+                <option value="not_given">টোকেন দেওয়া হয়নি</option>
+              </select>
+            </div>
+            <div class="search-box mobile-search-box">
+              <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+              </svg>
+              <input type="text" id="searchInputMobile" placeholder="নাম, ফোন বা সিরিয়াল..." />
+            </div>
+          </div>
+          
+          <!-- লাইন ৪: সিরিয়াল যুক্ত করুন বাটন -->
+          <button class="add-btn mobile-add-btn" id="openAddSerialModalBtnMobile">
+            <i class="fas fa-plus-circle"></i>
+            সিরিয়াল যুক্ত করুন
+          </button>
+        </div>
+        
+        <!-- স্ট্যাটাস বার্তা -->
+        <div id="statusMessage" class="stats-info">
+          মোট বুকিং: <span id="filteredCount">০</span> টি। প্রদর্শিত: <span id="displayedCount">০</span> টি।
+        </div>
+      </div>
+      
+      <!-- টেবিল কন্টেন্ট -->
+      <div class="table-container">
+        <div class="table-wrapper">
+          <table id="appointmentsTable"> 
+            <thead> 
+              <tr>
+                <th>সিরিয়াল</th>
+                <th>কল স্ট্যাটাস</th>
+                <th>টোকেন স্ট্যাটাস</th>
+                <th>রোগীর নাম</th>
+                <th>বয়স</th>
+                <th>ফোন</th>
+                <th>দিন/সময়</th>
+                <th>ধরন</th> 
+                <th>বুকিং তারিখ</th>
+                <th>কল অ্যাকশন</th>
+                <th>টোকেন অ্যাকশন</th>
+              </tr>
+            </thead> 
+            <tbody id="appointmentsBody"></tbody> 
+          </table>
+        </div>
+        <p id="loadingMessage" class="loading-message">ডেটা লোড হচ্ছে...</p>
+      </div>
+    </main>
+  </div>
+
+  <div id="footer-container"></div>
+  
+<!-- কুইক সিরিয়াল মোডাল -->
+<div class="modal" id="quickSerialModal">
+  <div class="modal-content">
+    <h2 style="margin-bottom: 20px; color: var(--dark);">সিরিয়াল যুক্ত করুন</h2>
+    <button class="close-btn" id="closeQuickModal">&times;</button>
+    
+    <form id="quickSerialForm">
+      <div class="form-group">
+        <label for="quickDay">দিন</label>
+        <select id="quickDay" required>
+          <option value="">দিন নির্বাচন করুন</option>
+          <option value="Thursday">বৃহস্পতিবার</option>
+          <option value="Friday">শুক্রবার</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label for="quickTime">সময়</label>
+        <select id="quickTime" required>
+          <option value="">সময় নির্বাচন করুন</option>
+        </select>
+      </div>
+      
+      <!-- রোগীর ধরন -->
+      <div class="form-group">
+        <label>রোগীর ধরন</label>
+        <div class="serial-types">
+          <div class="serial-type-card selected" data-type="new">
+            <h4>নতুন রোগী</h4>
+          </div>
+          <div class="serial-type-card" data-type="old">
+            <h4>পুরাতন রোগী</h4>
+          </div>
+        </div>
+        <input type="hidden" id="selectedPatientType" value="new">
+      </div>
+      
+      <!-- সিরিয়াল গ্রিড (grid.js দ্বারা পরিচালিত হবে) -->
+      <div class="form-group">
+        <label>সিরিয়াল নির্বাচন করুন</label>
+        <div class="serial-grid" id="serialGrid">
+          <!-- grid.js দ্বারা ডায়নামিকভাবে লোড হবে -->
+        </div>
+        <input type="hidden" id="serialInput" value="">
+        <small style="color: var(--gray); font-size: 12px; display: block; margin-top: 5px;">
+          💡 প্রতিটি রোগীর জন্য আলাদা সিরিয়ালে ক্লিক করুন
+        </small>
+      </div>
+      
+      <!-- 👥 একাধিক রোগীর তথ্য সেকশন -->
+      <div class="form-group">
+        <label style="display: flex; justify-content: space-between; align-items: center;">
+          <span>👥 রোগীর তথ্য</span>
+          <button type="button" id="addPatientBtn" class="btn-add-patient" style="padding: 5px 12px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">
+            <i class="fas fa-plus"></i> আরও রোগী যোগ করুন
+          </button>
+        </label>
+        
+        <div id="patientsContainer">
+  <div class="patient-card active" data-patient-index="0" style="background: #eff6ff; padding: 15px; border-radius: 8px; margin-bottom: 12px; border: 2px solid #3b82f6;">
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <input type="text" class="patient-name" placeholder="রোগীর নাম *" style="flex: 1; padding: 10px; border: 1px solid #e5e7eb; border-radius: 6px;" required>
+        
+        <button type="button" class="remove-patient-btn" style="background: #ef4444; color: white; border: none; border-radius: 6px; width: 38px; height: 38px; cursor: pointer; display: none; align-items: center; justify-content: center;">
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
+
+      <div style="display: flex; gap: 8px;">
+        <input type="number" class="patient-age-years" min="0" max="120" placeholder="বছর" style="flex: 1; padding: 10px; border: 1px solid #e5e7eb; border-radius: 6px;">
+        <input type="number" class="patient-age-months" min="0" placeholder="মাস" style="flex: 1; padding: 10px; border: 1px solid #e5e7eb; border-radius: 6px;">
+        <input type="number" class="patient-age-days" min="0" placeholder="দিন" style="flex: 1; padding: 10px; border: 1px solid #e5e7eb; border-radius: 6px;">
+      </div>
+
+    </div>
+
+    <div class="selected-serial-display" style="margin-top: 12px; font-size: 12px; color: #2563eb; display: none; background: #dbeafe; padding: 6px 10px; border-radius: 6px;">
+      📍 সিলেক্টেড সিরিয়াল: <span class="serial-numbers">—</span>
+    </div>
+  </div>
+</div>
+      
+      <!-- ফোন ফিল্ড (একটি মাত্র, সব রোগীর জন্য কমন) -->
+      <div class="form-group">
+        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+          <input type="checkbox" id="skipPhoneCheckbox" style="width: 18px; height: 18px; cursor: pointer;">
+          <span>ফোন নম্বর ছাড়া বুকিং করুন</span>
+        </label>
+        <div id="phoneFieldContainer">
+          <input type="tel" id="quickPhone" placeholder="01XXXXXXXXX" pattern="01[0-9]{9}"
+            title="বাংলাদেশের ১১ ডিজিটের মোবাইল নম্বর লিখুন" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px;">
+          <small style="color: var(--gray); font-size: 12px;">📱 ফোন নম্বর দিন অথবা উপরের চেকবক্স টিক দিন</small>
+        </div>
+      </div>
+      
+      <div class="form-actions">
+        <button type="button" class="cancel-btn-modal" id="cancelQuickModal">বাতিল</button>
+        <button type="submit" class="submit-btn" id="submitQuickBtn">সিরিয়াল যুক্ত করুন</button>
+      </div>
+    </form>
+  </div>
+</div>
+  
+  <script>
+
+    // =======================================================
+// AUTHENTICATION CHECK - FIXED
+// =======================================================
+function checkAuthentication() {
+  const isLoggedIn = sessionStorage.getItem('adminLoggedIn');
+  const loginTime = sessionStorage.getItem('loginTime');
+  
+  // ডিবাগিং
+  console.log('Auth check - isLoggedIn:', isLoggedIn, 'loginTime:', loginTime);
+  
+  if (!isLoggedIn || isLoggedIn !== 'true') {
+    console.log('Not logged in, redirecting to login');
+    alert('Please login first!!');
+    window.location.href = '/login';
+    return false;
+  }
+  
+  const currentTime = new Date().getTime();
+  const sessionDuration = 2 * 60 * 60 * 1000; // 2 hours
+  
+  if (currentTime - parseInt(loginTime) > sessionDuration) {
+    console.log('Session expired');
+    sessionStorage.clear();
+    alert('Session expired! Please login again.');
+    window.location.href = '/login';
+    return false;
+  }
+  
+  console.log('Authentication successful');
+  return true;
+}
+
+// 🔴 IMMEDIATE AUTH CHECK
+if (!checkAuthentication()) {
+  // Stop execution if not authenticated
+  throw new Error('Authentication failed - redirecting to login');
+}
+    // =======================================================
+    // ১. ফায়ারবেস কনফিগারেশন
+    // =======================================================
+const firebaseConfig = {
+      apiKey: "AIzaSyCUGkcHFSYVmA0KUSRHhY-ZFFAS6jpJe4M",
+      authDomain: "doctor-appointment-syste-23828.firebaseapp.com",
+      projectId: "doctor-appointment-syste-23828",
+      storageBucket: "doctor-appointment-syste-23828.appspot.com",
+      messagingSenderId: "79600391014",
+      appId: "1:79600391014:web:9688db8bb62f431ae16ea7"
+    };
+
+    let db;
+    let allAppointmentsSnapshot = null;
+    let serialRanges = {};
+    let appointments = [];
+    let pendingSelections = {};
+    let adminSessionId = 'admin_' + Date.now();
+    let currentFilters = {
+      day: 'all',
+      type: 'all',
+      time: 'all',
+      callStatus: 'all',
+      tokenStatus: 'all',
+      search: ''
+    };
+    
+    // Grid System Instance
+    let gridSystem = null;
+    let currentTokenId = null;      
+    let currentTokenDoc = null;     
+    let cleanupListeners = null; 
+    
+    try {
+      const app = firebase.initializeApp(firebaseConfig);
+      db = firebase.firestore(app);
+      console.log("✅ Firebase initialized");
+    } catch (e) {
+      console.error("❌ Firebase initialization error:", e);
+    }
+
+    // =======================================================
+    // ২. DOM উপাদান
+    // =======================================================
+    const elements = {
+      loadingMessage: document.getElementById('loadingMessage'),
+      appointmentsTable: document.getElementById('appointmentsTable'),
+      appointmentsBody: document.getElementById('appointmentsBody'),
+      statusMessage: document.getElementById('statusMessage'),
+      filteredCount: document.getElementById('filteredCount'),
+      displayedCount: document.getElementById('displayedCount'),
+      
+      // ডেস্কটপ ফিল্টার
+      dayFilter: document.getElementById('dayFilterSerial'),
+      typeFilter: document.getElementById('typeFilterSerial'),
+      timeFilter: document.getElementById('timeFilterSerial'),
+      callStatusFilter: document.getElementById('call-status-filter'),
+      tokenStatusFilter: document.getElementById('token-status-filter'),
+      searchInput: document.getElementById('searchInput'),
+      
+      // মোবাইল ফিল্টার
+      dayFilterMobile: document.getElementById('dayFilterSerialMobile'),
+      typeFilterMobile: document.getElementById('typeFilterSerialMobile'),
+      timeFilterMobile: document.getElementById('timeFilterSerialMobile'),
+      callStatusFilterMobile: document.getElementById('call-status-filter-mobile'),
+      tokenStatusFilterMobile: document.getElementById('token-status-filter-mobile'),
+      searchInputMobile: document.getElementById('searchInputMobile'),
+      
+      // কার্ড
+      calledCount: document.getElementById('called-count'),
+      notCalledCount: document.getElementById('not-called-count'),
+      tokenGivenCount: document.getElementById('token-given-count'),
+      tokenNotGivenCount: document.getElementById('token-not-given-count'),
+      thursdayAppointments: document.getElementById('thursdayAppointments'),
+      fridayAppointments: document.getElementById('fridayAppointments'),
+      totalAppointments: document.getElementById('totalAppointments'),
+      pendingSerials: document.getElementById('pendingSerials'),
+      totalSerials: document.getElementById('totalSerials'),
+      availableSerials: document.getElementById('availableSerials'),
+      newPatientLastCall: document.getElementById('newPatientLastCall'),
+      oldPatientLastCall: document.getElementById('oldPatientLastCall'),
+      
+      // মোডাল
+      quickSerialModal: document.getElementById('quickSerialModal'),
+      closeQuickModal: document.getElementById('closeQuickModal'),
+      cancelQuickModal: document.getElementById('cancelQuickModal'),
+      openAddSerialModalBtn: document.getElementById('openAddSerialModalBtn'),
+      openAddSerialModalBtnMobile: document.getElementById('openAddSerialModalBtnMobile'),
+      quickSerialForm: document.getElementById('quickSerialForm'),
+      quickDay: document.getElementById('quickDay'),
+      quickTime: document.getElementById('quickTime'),
+      serialGrid: document.getElementById('serialGrid'),
+      selectedPatientType: document.getElementById('selectedPatientType'),
+      serialInput: document.getElementById('serialInput'),
+      quickName: document.getElementById('quickName'),
+      quickAgeYears: document.getElementById('quickAgeYears'),
+      quickAgeMonths: document.getElementById('quickAgeMonths'),
+      quickAgeDays: document.getElementById('quickAgeDays'),
+      quickPhone: document.getElementById('quickPhone'),
+      submitQuickBtn: document.getElementById('submitQuickBtn')
+    };
+
+    // =======================================================
+    // ৩. ইউটিলিটি ফাংশন (showAlert সহ)
+    // =======================================================
+    const toBengaliNumber = (num) => {
+      if (num === null || num === undefined || num === '—') return '—';
+      const numStr = String(num); 
+      const bengaliMap = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+      return numStr.replace(/\d/g, digit => bengaliMap[digit]);
+    };
+
+    const formatTimestamp = (timestamp) => {
+      if (!timestamp || !timestamp.toDate) return '—';
+      const date = timestamp.toDate();
+      return date.toLocaleString('bn-BD', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      }).replace(/\d/g, toBengaliNumber);
+    };
+    
+    // বয়স নরমালাইজেশনের জন্য ফাংশন
+function normalizeAge(years, months, days) {
+  let normalizedYears = years || 0;
+  let normalizedMonths = months || 0;
+  let normalizedDays = days || 0;
+  
+  // দিন থেকে মাস (30 দিন = 1 মাস)
+  if (normalizedDays >= 30) {
+    const extraMonths = Math.floor(normalizedDays / 30);
+    normalizedMonths += extraMonths;
+    normalizedDays = normalizedDays % 30;
+  }
+  
+  // মাস থেকে বছর (12 মাস = 1 বছর)
+  if (normalizedMonths >= 12) {
+    const extraYears = Math.floor(normalizedMonths / 12);
+    normalizedYears += extraYears;
+    normalizedMonths = normalizedMonths % 12;
+  }
+  
+  return {
+    years: normalizedYears,
+    months: normalizedMonths,
+    days: normalizedDays
+  };
+}
+
+    // =======================================================
+    // ✅ মাল্টি পেশেন্ট ফাংশন (এখানে যোগ করুন)
+    // =======================================================
+
+// রোগী যোগ করার ফাংশন
+function addPatientField() {
+  const container = document.getElementById('patientsContainer');
+  if (!container) return;
+  
+  const patientCount = container.children.length;
+  
+  const patientDiv = document.createElement('div');
+  patientDiv.className = 'patient-card';
+  patientDiv.setAttribute('data-patient-index', patientCount);
+  patientDiv.style.cssText = 'background: #f9fafb; padding: 15px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #e5e7eb;';
+  
+  patientDiv.innerHTML = `
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <input type="text" class="patient-name" placeholder="রোগীর নাম *" style="flex: 1; padding: 10px; border: 1px solid #e5e7eb; border-radius: 6px;" required>
+        
+        <button type="button" class="remove-patient-btn" style="background: #ef4444; color: white; border: none; border-radius: 6px; width: 38px; height: 38px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
+
+      <div style="display: flex; gap: 8px;">
+        <input type="number" class="patient-age-years" min="0" max="120" placeholder="বছর" style="flex: 1; padding: 10px; border: 1px solid #e5e7eb; border-radius: 6px;">
+        <input type="number" class="patient-age-months" min="0" placeholder="মাস" style="flex: 1; padding: 10px; border: 1px solid #e5e7eb; border-radius: 6px;">
+        <input type="number" class="patient-age-days" min="0" placeholder="দিন" style="flex: 1; padding: 10px; border: 1px solid #e5e7eb; border-radius: 6px;">
+      </div>
+
+    </div>
+
+    <div class="selected-serial-display" style="margin-top: 12px; font-size: 12px; color: #2563eb; display: none; background: #dbeafe; padding: 6px 10px; border-radius: 6px;">
+      📍 সিলেক্টেড সিরিয়াল: <span class="serial-numbers">—</span>
+    </div>
+  `;
+  
+  container.appendChild(patientDiv);
+  
+  // ডিলিট বাটনের ইভেন্ট লিসেনার
+  const removeBtn = patientDiv.querySelector('.remove-patient-btn');
+  removeBtn.addEventListener('click', (e) => {
+    e.stopPropagation(); // কার্ডের ক্লিক ইভেন্ট যেন বন্ধ থাকে
+    removePatientField(patientDiv);
+  });
+  
+  // কার্ডের বডিতে ক্লিক ইভেন্ট (অ্যাক্টিভ করার জন্য)
+  patientDiv.addEventListener('click', (e) => {
+    if (!e.target.closest('.remove-patient-btn')) {
+      setActivePatient(patientDiv);
+    }
+  });
+  
+  updatePatientIndices();
+}
+
+    // রোগী রিমুভ ফাংশন
+    function removePatientField(patientDiv) {
+      const patients = document.querySelectorAll('.patient-card');
+      if (patients.length === 1) {
+        showAlert('কমপক্ষে একজন রোগী থাকতে হবে', 'warning');
+        return;
+      }
+      patientDiv.remove();
+      updatePatientIndices();
+      
+      const firstPatient = document.querySelector('.patient-card');
+      if (firstPatient) {
+        setActivePatient(firstPatient);
+      }
+    }
+
+    // সক্রিয় রোগী সেট করুন
+    function setActivePatient(patientDiv) {
+      document.querySelectorAll('.patient-card').forEach(card => {
+        card.classList.remove('active');
+        card.style.background = '#f9fafb';
+        card.style.border = '1px solid #e5e7eb';
+      });
+      
+      patientDiv.classList.add('active');
+      patientDiv.style.background = '#eff6ff';
+      patientDiv.style.border = '2px solid #3b82f6';
+      
+      const patientIndex = parseInt(patientDiv.getAttribute('data-patient-index'));
+      if (gridSystem) {
+        gridSystem.setCurrentPatientIndex(patientIndex);
+        updateAllSerialDisplays();
+      }
+    }
+
+    // ইন্ডেক্স আপডেট
+    function updatePatientIndices() {
+      const patients = document.querySelectorAll('.patient-card');
+      patients.forEach((patient, index) => {
+        patient.setAttribute('data-patient-index', index);
+      });
+    }
+
+    // সব সিরিয়াল ডিসপ্লে আপডেট
+    function updateAllSerialDisplays() {
+      if (!gridSystem) return;
+      
+      const patients = document.querySelectorAll('.patient-card');
+      patients.forEach((patient, index) => {
+        const serials = gridSystem.getSerialsForPatient(index);
+        const displayDiv = patient.querySelector('.selected-serial-display');
+        const serialSpan = patient.querySelector('.serial-numbers');
+        
+        if (displayDiv && serialSpan) {
+          if (serials && serials.length > 0) {
+            serialSpan.textContent = serials.join(', ');
+            displayDiv.style.display = 'block';
+          } else {
+            serialSpan.textContent = '—';
+            displayDiv.style.display = 'none';
+          }
+        }
+      });
+    }
+
+    // সব রোগীর ডাটা সংগ্রহ
+    function getAllPatientsData() {
+      const patients = document.querySelectorAll('.patient-card');
+      const patientsData = [];
+      
+      patients.forEach((patient, index) => {
+        const name = patient.querySelector('.patient-name').value.trim();
+        const years = parseInt(patient.querySelector('.patient-age-years').value) || 0;
+        const months = parseInt(patient.querySelector('.patient-age-months').value) || 0;
+        const days = parseInt(patient.querySelector('.patient-age-days').value) || 0;
+        
+        patientsData.push({
+          index: index,
+          name: name,
+          ageYears: years,
+          ageMonths: months,
+          ageDays: days
+        });
+      });
+      
+      return patientsData;
+    }
+
+    // একটি মাত্র ফোন নম্বর নেওয়ার ফাংশন
+    function getCommonPhoneNumber() {
+      const skipPhoneCheckbox = document.getElementById('skipPhoneCheckbox');
+      const skipPhone = skipPhoneCheckbox ? skipPhoneCheckbox.checked : false;
+      
+      if (skipPhone) {
+        return null;
+      }
+      
+      const phone = document.getElementById('quickPhone').value.trim();
+      if (!phone) {
+        return null;
+      }
+      
+      if (!/^01[0-9]{9}$/.test(phone)) {
+        return null;
+      }
+      
+      return phone;
+    }
+
+    // সক্রিয় রোগীর ইন্ডেক্স বের করুন
+    function getActivePatientIndex() {
+      const activePatient = document.querySelector('.patient-card.active');
+      if (activePatient) {
+        return parseInt(activePatient.getAttribute('data-patient-index'));
+      }
+      return 0;
+    }
+
+    // =======================================================
+    // এরপর getAgeDisplay ফাংশন
+    // =======================================================
+   const getAgeDisplay = (data) => {
+  let ageDisplay = '';
+  
+  // ✅ নরমালাইজড বয়স ফিল্ড ব্যবহার করুন
+  const years = data.ageYears || 0;
+  const months = data.ageMonths || 0;
+  const days = data.ageDays || 0;
+  
+  if (years > 0 || months > 0 || days > 0) {
+    if (years > 0) ageDisplay += `${toBengaliNumber(years)} বছর`;
+    if (months > 0) {
+      if (ageDisplay) ageDisplay += ', ';
+      ageDisplay += `${toBengaliNumber(months)} মাস`;
+    }
+    if (days > 0) {
+      if (ageDisplay) ageDisplay += ', ';
+      ageDisplay += `${toBengaliNumber(days)} দিন`;
+    }
+  } else if (data.age) {
+    // ব্যাকআপ: পুরনো ডাটার জন্য
+    if (typeof data.age === 'number' && data.age > 0) {
+      ageDisplay = `${toBengaliNumber(data.age)} বছর`;
+    } else if (typeof data.age === 'string') {
+      ageDisplay = data.age;
+    }
+  }
+  
+  return ageDisplay || '—';
+};
+
+    // demo.html এর মত showAlert ফাংশন
+    const showAlert = (message, type = 'info') => {
+      const alert = document.createElement('div');
+      alert.style.cssText = `
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        padding: 16px 24px;
+        border-radius: 10px;
+        color: white;
+        font-weight: 600;
+        z-index: 3000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        animation: slideIn 0.3s ease;
+        font-family: 'Noto Sans Bengali', sans-serif;
+      `;
+      
+      if (type === 'success') {
+        alert.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+      } else if (type === 'error') {
+        alert.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+      } else if (type === 'warning') {
+        alert.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+      } else {
+        alert.style.background = 'linear-gradient(135deg, #3b82f6, #2563eb)';
+      }
+      
+      alert.textContent = message;
+      document.body.appendChild(alert);
+      
+      setTimeout(() => {
+        alert.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => alert.remove(), 300);
+      }, 3000);
+    };
+
+    // CSS অ্যানিমেশন যোগ (যদি না থাকে)
+    if (!document.querySelector('style[data-alert-animation]')) {
+      const style = document.createElement('style');
+      style.setAttribute('data-alert-animation', 'true');
+      style.textContent = `
+        @keyframes slideIn {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOut {
+          from { transform: translateX(0); opacity: 1; }
+          to { transform: translateX(100%); opacity: 0; }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    // সময় সাজানোর ফাংশন
+    const sortTimes = (times) => {
+      return times.sort((a, b) => {
+        const convertTo24Hour = (timeStr) => {
+          if (!timeStr) return 0;
+          const time = timeStr.toUpperCase().trim();
+          let [timePart, modifier] = time.split(' ');
+          
+          if (!modifier) {
+            modifier = time.includes('PM') ? 'PM' : time.includes('AM') ? 'AM' : '';
+            if (modifier) {
+              timePart = time.replace(modifier, '').trim();
+            }
+          }
+          
+          const [hours, minutes] = timePart.split(':').map(Number);
+          
+          let hour24 = hours || 0;
+          
+          if (modifier === 'PM' && hour24 !== 12) {
+            hour24 += 12;
+          } else if (modifier === 'AM' && hour24 === 12) {
+            hour24 = 0;
+          }
+          
+          return hour24 * 100 + (minutes || 0);
+        };
+        
+        const aMinutes = convertTo24Hour(a);
+        const bMinutes = convertTo24Hour(b);
+        
+        return aMinutes - bMinutes;
+      });
+    };
+
+    // ৪ দিনের বেশি পুরানো ডাটা চেক
+    function isExpiredAppointment(data) {
+      if (!data.timestamp || !data.timestamp.toDate) return false;
+      
+      const appointmentDate = data.timestamp.toDate();
+      const fourDaysAgo = new Date();
+      fourDaysAgo.setDate(fourDaysAgo.getDate() - 4);
+      
+      return appointmentDate < fourDaysAgo;
+    }
+
+    // =======================================================
+// ৪. ড্যাশবোর্ড কার্ড আপডেট - UPDATED (সকল ডাটার জন্য)
+// =======================================================
+function updateDashboardCards(snapshot) {
+  if (!snapshot) return;
+  
+  // রিসেট কাউন্টার
+  let total = 0;
+  let thursday = 0;
+  let friday = 0;
+  let called = 0;
+  let notCalled = 0;
+  let tokenGiven = 0;
+  let tokenNotGiven = 0;
+  let newPatientLastCallSerial = 0;
+  let oldPatientLastCallSerial = 0;
+  
+  // ✅ সপ্তাহের তারিখ রেঞ্জ বের করা (শনিবার থেকে শুক্রবার)
+  const weekDateRange = getWeekDateRange();
+  
+  // সকল ডাটা প্রসেস
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    
+    // ✅ তারিখ চেক: শুধুমাত্র বর্তমান সপ্তাহের ডাটা (শনিবার থেকে শুক্রবার)
+    let appointmentDate = null;
+    
+    if (data.appointmentDate) {
+      appointmentDate = new Date(data.appointmentDate);
+    } else if (data.timestamp && data.timestamp.toDate) {
+      appointmentDate = data.timestamp.toDate();
+    }
+    
+    // তারিখ না থাকলে বা বর্তমান সপ্তাহে না হলে স্কিপ
+    if (!appointmentDate) {
+      // কিছু পুরানো ডাটা তারিখ ছাড়া থাকতে পারে, সেগুলোও গণনা করুন
+    } else if (!isDateInCurrentWeek(appointmentDate)) {
+      return; // বর্তমান সপ্তাহের বাইরের ডাটা বাদ দিন
+    }
+    
+    // ফিল্টার প্রয়োগ (UI ফিল্টার অনুযায়ী)
+    const dayMatch = currentFilters.day === 'all' || data.day === currentFilters.day;
+    const typeMatch = currentFilters.type === 'all' || (data.patientType || data.type) === currentFilters.type;
+    const timeMatch = currentFilters.time === 'all' || data.time === currentFilters.time;
+    const callStatusMatch = currentFilters.callStatus === 'all' || 
+      (currentFilters.callStatus === 'called' && data.called === true) ||
+      (currentFilters.callStatus === 'not_called' && data.called !== true);
+    const tokenStatusMatch = currentFilters.tokenStatus === 'all' || 
+      (currentFilters.tokenStatus === 'given' && data.tokenGiven === true) ||
+      (currentFilters.tokenStatus === 'not_given' && data.tokenGiven !== true);
+    const searchMatch = !currentFilters.search || 
+      (data.name && data.name.toLowerCase().includes(currentFilters.search)) ||
+      (data.phone && data.phone.includes(currentFilters.search)) ||
+      (data.serial && data.serial.toString().includes(currentFilters.search));
+    
+    if (dayMatch && typeMatch && timeMatch && callStatusMatch && tokenStatusMatch && searchMatch) {
+      // মোট কাউন্টার
+      total++;
+      
+      // দিন অনুযায়ী
+      if (data.day === 'Thursday') thursday++;
+      if (data.day === 'Friday') friday++;
+      
+      // কল স্ট্যাটাস
+      if (data.called === true) {
+        called++;
+      } else {
+        notCalled++;
+      }
+      
+      // টোকেন স্ট্যাটাস
+      if (data.tokenGiven === true) {
+        tokenGiven++;
+      } else {
+        tokenNotGiven++;
+      }
+      
+      // ✅ নতুন/পুরাতন রোগীর শেষ কল
+      if (data.called === true) {
+        const type = data.patientType || data.type || 'new';
+        const serial = parseInt(data.serial) || 0;
+        
+        if (type === 'new' && serial > newPatientLastCallSerial) {
+          newPatientLastCallSerial = serial;
+        } else if (type === 'old' && serial > oldPatientLastCallSerial) {
+          oldPatientLastCallSerial = serial;
+        }
+      }
+    }
+  });
+  
+  // কার্ড আপডেট
+  elements.calledCount.textContent = toBengaliNumber(called);
+  elements.notCalledCount.textContent = toBengaliNumber(notCalled);
+  elements.tokenGivenCount.textContent = toBengaliNumber(tokenGiven);
+  elements.tokenNotGivenCount.textContent = toBengaliNumber(tokenNotGiven);
+  elements.thursdayAppointments.textContent = toBengaliNumber(thursday);
+  elements.fridayAppointments.textContent = toBengaliNumber(friday);
+  elements.totalAppointments.textContent = toBengaliNumber(total);
+  
+  // নতুন/পুরাতন রোগী লাস্ট কল কার্ড
+  elements.newPatientLastCall.textContent = toBengaliNumber(newPatientLastCallSerial);
+  elements.oldPatientLastCall.textContent = toBengaliNumber(oldPatientLastCallSerial);
+  
+  // সিরিয়াল স্ট্যাটস আপডেট
+  updateSerialStats();
+}
+
+// =======================================================
+// নতুন হেল্পার ফাংশন যোগ করুন
+// =======================================================
+
+// ✅ বর্তমান সপ্তাহের তারিখ রেঞ্জ বের করা (শনিবার থেকে শুক্রবার)
+function getWeekDateRange() {
+  const today = new Date();
+  const dayOfWeek = today.getDay(); // 0 = Sunday, 6 = Saturday
+  
+  // সপ্তাহের প্রথম দিন (শনিবার)
+  const saturday = new Date(today);
+  const daysToSaturday = dayOfWeek === 6 ? 0 : (dayOfWeek + 1) % 7;
+  saturday.setDate(today.getDate() - daysToSaturday);
+  saturday.setHours(0, 0, 0, 0);
+  
+  // সপ্তাহের শেষ দিন (শুক্রবার)
+  const friday = new Date(saturday);
+  friday.setDate(saturday.getDate() + 6);
+  friday.setHours(23, 59, 59, 999);
+  
+  return {
+    saturday: saturday,
+    friday: friday,
+    saturdayStr: formatDateToDisplay(saturday),
+    fridayStr: formatDateToDisplay(friday)
+  };
+}
+
+// ✅ তারিখ বর্তমান সপ্তাহে আছে কিনা চেক করা
+function isDateInCurrentWeek(date) {
+  const weekRange = getWeekDateRange();
+  return date >= weekRange.saturday && date <= weekRange.friday;
+}
+
+// ✅ তারিখ ফর্ম্যাট করা (ডিসপ্লে জন্য)
+function formatDateToDisplay(date) {
+  return date.toLocaleDateString('bn-BD', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+}
+
+// ✅ তারিখ রেঞ্জ মেসেজ আপডেট
+function updateDateRangeMessage(dateRange) {
+  const rangeInfo = document.getElementById('dateRangeInfo');
+  if (!rangeInfo) {
+    // নতুন এলিমেন্ট তৈরি করুন
+    const newRangeInfo = document.createElement('div');
+    newRangeInfo.id = 'dateRangeInfo';
+    newRangeInfo.className = 'stats-info';
+    newRangeInfo.style.marginTop = '10px';
+    newRangeInfo.style.backgroundColor = '#f0f9ff';
+    newRangeInfo.style.color = '#0369a1';
+  }
+  
+  // মেসেজ আপডেট
+  const rangeElement = document.getElementById('dateRangeInfo');
+  if (rangeElement) {
+    rangeElement.textContent = `দেখানো হচ্ছে: ${dateRange.saturdayStr} থেকে ${dateRange.fridayStr} পর্যন্ত অ্যাপয়েন্টমেন্ট`;
+  }
+}
+
+// ✅ নো রেজাল্ট মেসেজ
+function getNoResultsMessage(dateRange) {
+  return `বর্তমান সপ্তাহে (${dateRange.saturdayStr} থেকে ${dateRange.fridayStr}) কোনো অ্যাপয়েন্টমেন্ট পাওয়া যায়নি`;
+}
+
+// =======================================================
+// ৫. সিরিয়াল স্ট্যাটস ক্যালকুলেশন - FIXED (TIME FILTER সহ)
+// =======================================================
+async function updateSerialStats() {
+  try {
+    // লোড সিরিয়াল রেঞ্জ
+    await loadSerialRanges();
+    
+    let totalSerialCount = 0;
+    
+    // 🟢 গ্লোবাল filters অবজেক্ট অথবা ড্রপডাউন থেকে সিলেক্টেড দিন নেওয়া
+    let selectedDay = 'all';
+    if (typeof currentFilters !== 'undefined' && currentFilters && currentFilters.day) {
+      selectedDay = currentFilters.day;
+    } else {
+      const desktopDayFilter = document.getElementById('dayFilterSerial');
+      if (desktopDayFilter) selectedDay = desktopDayFilter.value;
+    }
+    
+    let selectedType = 'all';
+    if (typeof currentFilters !== 'undefined' && currentFilters && currentFilters.type) {
+      selectedType = currentFilters.type;
+    } else {
+      const desktopTypeFilter = document.getElementById('typeFilterSerial');
+      if (desktopTypeFilter) selectedType = desktopTypeFilter.value;
+    }
+    
+    // ✅ মোট সিরিয়াল স্লট - শুধুমাত্র নির্বাচিত দিনের জন্য
+    if (selectedDay === 'all') {
+      // সব দিনের স্লট গণনা
+      for (const day in serialRanges) {
+        for (const type in serialRanges[day]) {
+          // টাইপ ফিল্টার চেক
+          if (selectedType !== 'all' && type !== selectedType) continue;
+          
+          for (const time in serialRanges[day][type]) {
+            const range = serialRanges[day][type][time];
+            if (Array.isArray(range) && range.length === 2) {
+              totalSerialCount += (range[1] - range[0] + 1);
+            }
+          }
+        }
+      }
+    } else {
+      // শুধুমাত্র নির্বাচিত দিনের স্লট গণনা
+      if (serialRanges && serialRanges[selectedDay]) {
+        for (const type in serialRanges[selectedDay]) {
+          // টাইপ ফিল্টার চেক
+          if (selectedType !== 'all' && type !== selectedType) continue;
+          
+          for (const time in serialRanges[selectedDay][type]) {
+            const range = serialRanges[selectedDay][type][time];
+            if (Array.isArray(range) && range.length === 2) {
+              totalSerialCount += (range[1] - range[0] + 1);
+            }
+          }
+        }
+      }
+    }
+    
+    // ✅ বর্তমান সপ্তাহের একটিভ বুকিং গণনা
+    let activeBookings = 0;
+    if (allAppointmentsSnapshot) {
+      allAppointmentsSnapshot.forEach(doc => {
+        const data = doc.data();
+        
+        let appointmentDate = null;
+        if (data.appointmentDate) {
+          appointmentDate = new Date(data.appointmentDate);
+        } else if (data.timestamp && data.timestamp.toDate) {
+          appointmentDate = data.timestamp.toDate();
+        }
+        
+        // বর্তমান সপ্তাহের ডাটা এবং দিন মিললে কাউন্ট হবে
+        if (appointmentDate && typeof isDateInCurrentWeek === 'function' && isDateInCurrentWeek(appointmentDate)) {
+          if (selectedDay === 'all' || data.day === selectedDay) {
+            // টাইপ ফিল্টার চেক
+            const type = data.patientType || data.type;
+            if (selectedType === 'all' || type === selectedType) {
+              activeBookings++;
+            }
+          }
+        }
+      });
+    }
+    
+    // ✅ পেন্ডিং কাউন্ট - সঠিকভাবে ফিল্টার সহ
+    let pendingCount = 0;
+    if (pendingSelections) {
+      for (const key in pendingSelections) {
+        if (Object.prototype.hasOwnProperty.call(pendingSelections, key) && pendingSelections[key]) {
+          const pending = pendingSelections[key];
+          
+          // পেন্ডিং ডেটা থেকে দিন বের করা
+          const pendingDay = pending.day || pending.daySlot || '';
+          const pendingType = pending.patientType || '';
+          
+          // দিন ফিল্টার
+          const dayMatches = (selectedDay === 'all' || pendingDay === selectedDay);
+          // টাইপ ফিল্টার
+          const typeMatches = (selectedType === 'all' || pendingType === selectedType);
+          
+          if (dayMatches && typeMatches) {
+            if (pending.user && Array.isArray(pending.user)) {
+              pendingCount += pending.user.length;
+            } else if (pending.user && typeof pending.user === 'object') {
+              pendingCount += Object.keys(pending.user).length;
+            } else if (pending.serial) {
+              pendingCount += 1;
+            }
+          }
+        }
+      }
+    }
+    
+    // এভেইলেবল = মোট স্লট - এক্টিভ বুকিং - পেন্ডিং
+    const availableSerials = Math.max(0, totalSerialCount - activeBookings - pendingCount);
+    
+    // বাংলা নাম্বার কনভার্ট সহ টেক্সট আপডেট
+    const showBengali = typeof toBengaliNumber === 'function';
+    if (elements) {
+      if (elements.totalSerials) elements.totalSerials.textContent = showBengali ? toBengaliNumber(totalSerialCount) : totalSerialCount;
+      if (elements.availableSerials) elements.availableSerials.textContent = showBengali ? toBengaliNumber(availableSerials) : availableSerials;
+      if (elements.pendingSerials) elements.pendingSerials.textContent = showBengali ? toBengaliNumber(pendingCount) : pendingCount;
+    }
+    
+    console.log(`📊 Stats updated -> Day: ${selectedDay}, Type: ${selectedType}, Total: ${totalSerialCount}, Pending: ${pendingCount}, Active: ${activeBookings}`);
+    
+  } catch (error) {
+    console.error('❌ Error updating serial stats:', error);
+  }
+}
+
+// =======================================================
+// ৬. টাইম ফিল্টার অপশন আপডেট - শুধু বুকিং আছে এমন সময় দেখাবে
+// =======================================================
+function updateTimeOptions() {
+  const selectedDay = currentFilters.day;
+  const selectedType = currentFilters.type;
+  const timesWithBookings = new Set();
+  
+  console.log("🕒 updateTimeOptions called - Day:", selectedDay, "Type:", selectedType);
+  
+  // চেক করুন appointments ডাটা আছে কিনা
+  if (!allAppointmentsSnapshot) {
+    console.log("⏳ No appointments data yet");
+    
+    // ডেস্কটপ টাইম ফিল্টার খালি রাখুন
+    if (elements.timeFilter) {
+      elements.timeFilter.innerHTML = '<option value="all">সকল সময়</option>';
+    }
+    // মোবাইল টাইম ফিল্টার খালি রাখুন
+    if (elements.timeFilterMobile) {
+      elements.timeFilterMobile.innerHTML = '<option value="all">সকল সময়</option>';
+    }
+    return;
+  }
+  
+  // ✅ বর্তমান সপ্তাহের বুকিং থেকে সময় বের করুন
+  const weekRange = getWeekDateRange();
+  
+  allAppointmentsSnapshot.forEach(doc => {
+    const data = doc.data();
+    
+    // বর্তমান সপ্তাহের ডাটা চেক করুন
+    let appointmentDate = null;
+    if (data.appointmentDate) {
+      appointmentDate = new Date(data.appointmentDate);
+    } else if (data.timestamp && data.timestamp.toDate) {
+      appointmentDate = data.timestamp.toDate();
+    }
+    
+    if (appointmentDate && isDateInCurrentWeek(appointmentDate)) {
+      // দিন ফিল্টার
+      const dayMatch = selectedDay === 'all' || data.day === selectedDay;
+      // টাইপ ফিল্টার
+      const typeMatch = selectedType === 'all' || (data.patientType || data.type) === selectedType;
+      
+      // শুধু বুকিং আছে এমন সময় যোগ করুন
+      if (dayMatch && typeMatch && data.time) {
+        timesWithBookings.add(data.time);
+        console.log(`✅ বুকিং আছে: ${data.time} (${data.day}, ${data.patientType || data.type})`);
+      }
+    }
+  });
+  
+  // সময় সাজানো
+  const sortedTimes = sortTimes(Array.from(timesWithBookings));
+  console.log("🎯 সময় ফিল্টারে দেখানো হবে (যেখানে বুকিং আছে):", sortedTimes);
+  
+  const currentTime = currentFilters.time;
+  
+  // ✅ ডেস্কটপ টাইম ফিল্টার আপডেট
+  if (elements.timeFilter) {
+    elements.timeFilter.innerHTML = '<option value="all">সকল সময়</option>';
+    
+    sortedTimes.forEach(time => {
+      const option = document.createElement('option');
+      option.value = time;
+      option.textContent = time;
+      if (time === currentTime) option.selected = true;
+      elements.timeFilter.appendChild(option);
+    });
+    
+    // কোনো বুকিং না থাকলে ড্রপডাউন ডিজেবল করুন
+    if (sortedTimes.length === 0) {
+      elements.timeFilter.disabled = true;
+    } else {
+      elements.timeFilter.disabled = false;
+    }
+  }
+  
+  // ✅ মোবাইল টাইম ফিল্টার আপডেট
+  if (elements.timeFilterMobile) {
+    elements.timeFilterMobile.innerHTML = '<option value="all">সকল সময়</option>';
+    
+    sortedTimes.forEach(time => {
+      const option = document.createElement('option');
+      option.value = time;
+      option.textContent = time;
+      if (time === currentTime) option.selected = true;
+      elements.timeFilterMobile.appendChild(option);
+    });
+    
+    // কোনো বুকিং না থাকলে ড্রপডাউন ডিজেবল করুন
+    if (sortedTimes.length === 0) {
+      elements.timeFilterMobile.disabled = true;
+    } else {
+      elements.timeFilterMobile.disabled = false;
+    }
+  }
+  
+  console.log(`✅ টাইম ফিল্টার আপডেট: ${sortedTimes.length} টি সময় (যেখানে বুকিং আছে)`);
+}
+// =======================================================
+// ৭. অ্যাপয়েন্টমেন্ট রেন্ডার - UPDATED FOR SATURDAY TO FRIDAY
+// =======================================================
+function renderAppointments() {
+  if (!allAppointmentsSnapshot) return;
+  
+  elements.appointmentsBody.innerHTML = '';
+  elements.loadingMessage.style.display = 'none';
+  elements.appointmentsTable.style.display = 'table';
+  
+  // ✅ নতুন: শনিবার থেকে শুক্রবার পর্যন্ত সপ্তাহের জন্য তারিখ রেঞ্জ বের করা
+  const dateRange = getWeekDateRange();
+  
+  let filteredDocs = [];
+  let filteredCount = 0;
+  let displayedCount = 0;
+  
+  // ফিল্টার প্রয়োগ
+  allAppointmentsSnapshot.forEach(doc => {
+    const data = doc.data();
+    let isMatch = true;
+    
+    // ✅ ১. তারিখ ফিল্টার: শনিবার থেকে শুক্রবার পর্যন্ত
+    let appointmentDate = null;
+    
+    if (data.appointmentDate) {
+      // নতুন সিস্টেম: সরাসরি appointmentDate থেকে
+      appointmentDate = new Date(data.appointmentDate);
+    } else if (data.timestamp && data.timestamp.toDate) {
+      // পুরাতন সিস্টেম: timestamp থেকে
+      appointmentDate = data.timestamp.toDate();
+    }
+    
+    if (appointmentDate) {
+      // ✅ তারিখটা বর্তমান সপ্তাহে (শনিবার থেকে শুক্রবার) কিনা চেক
+      if (!isDateInCurrentWeek(appointmentDate)) {
+        isMatch = false;
+      }
+    }
+    
+    // ✅ ২. দিন ফিল্টার (যদি 'all' না হয়)
+    if (isMatch && currentFilters.day !== 'all' && data.day !== currentFilters.day) {
+      isMatch = false;
+    }
+    
+    // ✅ ৩. টাইপ ফিল্টার
+    if (isMatch && currentFilters.type !== 'all') {
+      const type = data.patientType || data.type;
+      if (type !== currentFilters.type) isMatch = false;
+    }
+    
+    // ✅ ৪. সময় ফিল্টার
+    if (isMatch && currentFilters.time !== 'all' && data.time !== currentFilters.time) {
+      isMatch = false;
+    }
+    
+    // ✅ ৫. কল স্ট্যাটাস ফিল্টার
+    if (isMatch && currentFilters.callStatus !== 'all') {
+      const isCalled = data.called === true;
+      if ((currentFilters.callStatus === 'called' && !isCalled) ||
+          (currentFilters.callStatus === 'not_called' && isCalled)) {
+        isMatch = false;
+      }
+    }
+    
+    // ✅ ৬. টোকেন স্ট্যাটাস ফিল্টার
+    if (isMatch && currentFilters.tokenStatus !== 'all') {
+      const isTokenGiven = data.tokenGiven === true;
+      if ((currentFilters.tokenStatus === 'given' && !isTokenGiven) ||
+          (currentFilters.tokenStatus === 'not_given' && isTokenGiven)) {
+        isMatch = false;
+      }
+    }
+    
+    // ✅ ৭. সার্চ ফিল্টার
+    if (isMatch && currentFilters.search) {
+      const name = (data.name || '').toLowerCase();
+      const phone = String(data.phone || '');
+      const serial = String(data.serial || '');
+      
+      if (!name.includes(currentFilters.search) && 
+          !phone.includes(currentFilters.search) && 
+          !serial.includes(currentFilters.search)) {
+        isMatch = false;
+      }
+    }
+    
+    if (isMatch) {
+      filteredCount++;
+      filteredDocs.push({ id: doc.id, data: data });
+      displayedCount++;
+    }
+  });
+  
+  // স্ট্যাটাস বার্তা আপডেট
+  elements.filteredCount.textContent = toBengaliNumber(filteredCount);
+  elements.displayedCount.textContent = toBengaliNumber(displayedCount);
+  
+  // ✅ তারিখ রেঞ্জ মেসেজ দেখানো
+  updateDateRangeMessage(dateRange);
+  
+  if (filteredDocs.length === 0) {
+    elements.appointmentsBody.innerHTML = `
+      <tr>
+        <td colspan="11" style="text-align: center; padding: 40px; color: var(--gray);">
+          ${getNoResultsMessage(dateRange)}
+        </td>
+      </tr>
+    `;
+    return;
+  }
+  
+  // সিরিয়াল অনুসারে সাজানো
+  filteredDocs.sort((a, b) => (a.data.serial || 0) - (b.data.serial || 0));
+  
+  // টেবিল রো রেন্ডার
+  filteredDocs.forEach(item => {
+    const { id, data } = item;
+    const row = elements.appointmentsBody.insertRow();
+    
+    // স্ট্যাটাস
+    const isCalled = data.called === true;
+    const callStatusClass = isCalled ? 'status-called' : 'status-not-called';
+    const callStatusText = isCalled ? 'কল করা হয়েছে' : 'কল করা হয়নি';
+    const callButtonClass = isCalled ? 'btn-call-undo' : 'btn-call';
+    const callButtonText = isCalled ? 'কল বাতিল' : data.name || 'কল করুন';
+    
+    const isTokenGiven = data.tokenGiven === true;
+    const tokenStatusClass = isTokenGiven ? 'status-token-given' : 'status-token-not-given';
+    const tokenStatusText = isTokenGiven ? 'টোকেন দেওয়া' : 'টোকেন বাকি';
+    const tokenButtonClass = isTokenGiven ? 'btn-token-undo' : 'btn-token';
+    const tokenButtonText = isTokenGiven ? 'টোকেন বাতিল' : data.name || 'টোকেন দিন';
+    
+    const ageDisplay = getAgeDisplay(data);
+    const typeText = (data.patientType || data.type) === 'old' ? 'পুরাতন' : 'নতুন';
+    
+    // তারিখ ফর্ম্যাট
+    let dateDisplay = data.appointmentDateDisplay || '—';
+    if (!dateDisplay && data.timestamp && data.timestamp.toDate) {
+      const date = data.timestamp.toDate();
+      dateDisplay = date.toLocaleDateString('bn-BD', {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    }
+    
+    row.innerHTML = `
+      <td>${toBengaliNumber(data.serial || 'N/A')}</td>
+      <td><span class="status-badge ${callStatusClass}">${callStatusText}</span></td>
+      <td><span class="status-badge ${tokenStatusClass}">${tokenStatusText}</span></td>
+      <td>${data.name || 'N/A'}</td>
+      <td>${ageDisplay}</td>
+      <td style="text-align: center;">${data.phone ? toBengaliNumber(data.phone) : 'N/A'}</td>
+      <td>${dateDisplay || 'N/A'}, ${data.time || 'N/A'}</td>
+      <td>${typeText}</td>
+      <td>${formatTimestamp(data.timestamp)}</td>
+          <td><button class="action-btn ${callButtonClass}" data-id="${id}" data-field="called" data-status="${isCalled}">${callButtonText}</button></td>
+          <td>
+    ${isTokenGiven ? 
+      `<button class="action-btn btn-token-details" data-id="${id}" onclick="showTokenDetailsModal(this)">
+        <i class="fas fa-print"></i> বিস্তারিত
+      </button>` :
+      `<button class="action-btn btn-token" data-id="${id}" onclick="showTokenDetailsModal(this)">
+        <i class="fas fa-plus"></i> ${data.name || 'টোকেন দিন'}
+      </button>`
+    }
+  </td>
+        `;
+        
+// ১. কল বাটনের লিসেনার (যা আগে থেকেই ছিল)
+const callBtn = row.querySelector(`button[data-field="called"]`);
+if (callBtn) {
+  callBtn.addEventListener('click', () => updateCallStatus(callBtn));
+}
+
+// ২. টোকেন বাটনের লিসেনার (নতুন যুক্ত করা হলো)
+const tokenBtn = row.querySelector(`button[data-field="token"]`);
+if (tokenBtn) {
+  tokenBtn.addEventListener('click', () => showTokenDetailsModal(tokenBtn));
+}
+      });
+    }
+
+   // =======================================================
+// ৮. স্ট্যাটাস আপডেট - FINAL SIMPLE VERSION
+// =======================================================
+    async function updateCallStatus(button) {
+      if (!db) return;
+      
+      const docId = button.getAttribute('data-id');
+      const currentStatus = button.getAttribute('data-status') === 'true';
+      const newStatus = !currentStatus;
+      
+      const row = button.closest('tr');
+      const patientNameCell = row.querySelector('td:nth-child(4)');
+      const patientName = patientNameCell ? patientNameCell.textContent : '';
+      
+      const originalText = button.textContent;
+      button.textContent = 'আপডেট হচ্ছে...';
+      button.disabled = true;
+      
+      try {
+        await db.collection('appointments').doc(docId).update({
+          called: newStatus,
+          calledTimestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        showAlert(newStatus ? `${patientName} - কল করা হয়েছে` : `${patientName} - কল বাতিল করা হয়েছে`, 'success');
+        
+        button.textContent = newStatus ? 'কল বাতিল' : (patientName || 'কল করুন');
+        button.className = newStatus ? 'action-btn btn-call-undo' : 'action-btn btn-call';
+        button.setAttribute('data-status', newStatus);
+        button.disabled = false;
+        
+        const statusBadge = row.querySelector('td:nth-child(2) .status-badge');
+        if (statusBadge) {
+          statusBadge.textContent = newStatus ? 'কল করা হয়েছে' : 'কল করা হয়নি';
+          statusBadge.className = newStatus ? 'status-badge status-called' : 'status-badge status-not-called';
+        }
+        
+      } catch (error) {
+        console.error('Error updating call status:', error);
+        showAlert('কল আপডেট করতে সমস্যা হয়েছে', 'error');
+        button.textContent = originalText;
+        button.disabled = false;
+      }
+    }
+
+    // =======================================================
+    // টোকেন বিস্তারিত মোডাল দেখানো (নতুন ফিচার)
+    // =======================================================
+    async function showTokenDetailsModal(button) {
+  const docId = button.getAttribute('data-id');
+  const doc = await db.collection('appointments').doc(docId).get();
+  const data = doc.data();
+  
+  currentTokenId = docId;
+  
+  // 🔥 চেক করুন paymentHistories-এ এই appointmentId আছে কিনা
+  let existingToken = null;
+  const existingTokenQuery = await db.collection('paymentHistories')
+    .where('appointmentId', '==', docId)
+    .limit(1)
+    .get();
+  
+  if (!existingTokenQuery.empty) {
+    existingToken = { id: existingTokenQuery.docs[0].id, ...existingTokenQuery.docs[0].data() };
+    currentTokenDoc = existingToken;
+  } else {
+    currentTokenDoc = { id: docId, ...data };
+  }
+  
+  const defaultFee = data.patientType === 'new' ? 800 : 600;
+  const currentFee = existingToken?.tokenFee || data.tokenFee || defaultFee;
+  const currentPaid = existingToken?.tokenPaid || data.tokenPaid || 0;
+  const due = currentFee - currentPaid;
+      
+      const paymentHistory = data.paymentHistory || [];
+      
+      const modalHtml = `
+        <div class="token-modal-overlay" id="tokenModalOverlay">
+          <div class="token-modal-container">
+            <div class="token-modal-header">
+              <h3><i class="fas fa-ticket-alt"></i> টোকেন বিস্তারিত</h3>
+              <button class="token-modal-close" onclick="closeTokenModal()">&times;</button>
+            </div>
+            <div class="token-modal-body">
+              <div class="token-form-group">
+                <label>রোগীর নাম</label>
+                <input type="text" id="tokenName" value="${(data.name || '').replace(/"/g, '&quot;')}" placeholder="রোগীর নাম">
+              </div>
+              <div class="token-form-group">
+  <div class="token-form-group">
+  <label>বয়স</label>
+  <input type="text" id="tokenAge" value="${getAgeDisplay(data)}" placeholder="বয়স">
+</div>
+              <div class="token-form-group">
+  <label>রোগীর ধরন</label>
+  <select id="tokenType" onchange="updateFeeByPatientType(this.value)">
+    <option value="new" ${data.patientType === 'new' ? 'selected' : ''}>নতুন রোগী</option>
+    <option value="old" ${data.patientType === 'old' ? 'selected' : ''}>পুরাতন রোগী</option>
+  </select>
+</div>
+<div class="token-form-group">
+  <label>ফি (টাকা)</label>
+  <input type="number" id="tokenFee" value="${currentFee}" placeholder="ফি" oninput="updateDueAmount()">
+</div>
+              <div class="token-form-group">
+                <label>পরিশোধিত টাকা</label>
+                <input type="number" id="tokenPaid" value="${currentPaid}" placeholder="পরিশোধিত টাকা" oninput="updateDueAmount()">
+                <div class="due-amount" id="dueAmount">বাকি: ${due} টাকা</div>
+              </div>
+              ${paymentHistory.length > 0 ? `
+                <div class="payment-history">
+                  <h4>পেমেন্ট ইতিহাস:</h4>
+                  ${paymentHistory.map(p => `
+                    <div class="payment-item">
+                      <strong>${new Date(p.date?.toDate?.() || p.timestamp || Date.now()).toLocaleDateString('bn-BD')}</strong> - 
+                      ${p.amount} টাকা (${p.method || 'নগদ'}) - ${p.note || ''}
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
+            </div>
+            <div class="token-modal-actions">
+              <button class="btn-save-print" onclick="saveAndPrintToken()"><i class="fas fa-save"></i> সংরক্ষণ ও প্রিন্ট</button>
+              <button class="btn-cancel-modal" onclick="closeTokenModal()"><i class="fas fa-times"></i> বাতিল</button>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+    
+    function updateDueAmount() {
+      const fee = parseInt(document.getElementById('tokenFee')?.value) || 0;
+      const paid = parseInt(document.getElementById('tokenPaid')?.value) || 0;
+      const due = fee - paid;
+      const dueElement = document.getElementById('dueAmount');
+      if (dueElement) {
+        dueElement.textContent = `বাকি: ${due} টাকা`;
+        dueElement.style.color = due > 0 ? '#dc2626' : '#10b981';
+      }
+    }
+
+    function updateFeeByPatientType(type) {
+  const feeInput = document.getElementById('tokenFee');
+  
+  if (feeInput) {
+    // নতুন রোগী হলে ৮০০ টাকা, পুরাতন রোগী হলে ৬০০ টাকা অটোমেটিক সেট হবে
+    if (type === 'new') {
+      feeInput.value = 800;
+    } else if (type === 'old') {
+      feeInput.value = 600;
+    }
+    
+    // ফি পরিবর্তন হওয়ার পর "বাকি থাকবে কত টাকা" সেটার হিসাবও যেন সাথে সাথে আপডেট হয়
+    if (typeof updateDueAmount === 'function') {
+      updateDueAmount();
+    }
+  }
+}
+    
+
+async function saveAndPrintToken() {
+  if (!currentTokenId) {
+    showAlert('টোকেন তথ্য পাওয়া যায়নি', 'error');
+    return;
+  }
+  
+  const name = document.getElementById('tokenName')?.value || '';
+  const age = document.getElementById('tokenAge')?.value || '';
+  const patientType = document.getElementById('tokenType')?.value;
+  const fee = parseInt(document.getElementById('tokenFee')?.value) || (patientType === 'new' ? 800 : 600);
+  const paid = parseInt(document.getElementById('tokenPaid')?.value) || 0;
+  const givenBy = document.getElementById('tokenGivenBy')?.value;
+  
+  try {
+    const appointmentDoc = await db.collection('appointments').doc(currentTokenId).get();
+    const appointmentData = appointmentDoc.data();
+    const originalSerial = appointmentData.serial;
+    
+    const existingTokenQuery = await db.collection('paymentHistories')
+      .where('appointmentId', '==', currentTokenId)
+      .limit(1)
+      .get();
+    
+    let tokenNumber;
+    
+    if (!existingTokenQuery.empty) {
+      // Update existing token
+      const existingDoc = existingTokenQuery.docs[0];
+      tokenNumber = existingDoc.data().tokenNumber;
+      const existingData = existingDoc.data();
+      let paymentHistory = existingData.paymentHistory || [];
+      
+      const oldPaid = existingData.tokenPaid || 0;
+      if (paid !== oldPaid) {
+        const difference = paid - oldPaid;
+        paymentHistory.push({
+          id: Date.now().toString(),
+          amount: Math.abs(difference),
+          type: difference > 0 ? 'payment' : 'refund',
+          method: 'নগদ',
+          previousPaid: oldPaid,
+          newPaid: paid,
+          note: difference > 0 ? ` পেমেন্ট: ${difference} টাকা` : ` ফেরত: ${Math.abs(difference)} টাকা`,
+          timestamp: new Date().toISOString(),
+          createdBy: sessionStorage.getItem('adminEmail') || 'admin',
+          source: 'dashboard'
+        });
+      }
+      
+      await db.collection('paymentHistories').doc(existingDoc.id).update({
+        patientName: name,
+        patientAge: age,
+        patientType: patientType,
+        tokenFee: fee,
+        tokenPaid: paid,
+        tokenDue: fee - paid,
+        status: (fee - paid) === 0 ? 'paid' : 'due',
+        paymentHistory: paymentHistory,
+        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      
+      showAlert(`✅ টোকেন ${tokenNumber} আপডেট করা হয়েছে!`, 'success');
+      
+    } else {
+      const today = new Date();
+      const yy = String(today.getFullYear()).slice(-2);
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      const datePrefix = `${yy}${mm}${dd}`;
+      
+      // 🔥 শুধু where ব্যবহার করবো, orderBy ছাড়া
+      const allTokensQuery = await db.collection('paymentHistories')
+        .where('tokenDatePrefix', '==', datePrefix)
+        .get();
+      
+      // জাভাস্ক্রিপ্টে সাজানো
+      let maxCounter = 0;
+      allTokensQuery.forEach(doc => {
+        const data = doc.data();
+        const counter = data.tokenCounter || 0;
+        if (counter > maxCounter) maxCounter = counter;
+      });
+      
+      const newTokenSerial = maxCounter + 1;
+      const padding = newTokenSerial >= 100 ? 3 : 2;
+      tokenNumber = `T-${datePrefix}-${String(newTokenSerial).padStart(padding, '0')}`;
+      
+      const initialPaymentHistory = [{
+        id: Date.now().toString(),
+        amount: paid,
+        type: 'payment',
+        method: 'নগদ',
+        note: `টোকেন প্রদান - ${tokenNumber}`,
+        timestamp: new Date().toISOString(),
+        createdBy: sessionStorage.getItem('adminEmail') || 'admin',
+        source: 'dashboard'
+      }];
+      
+      await db.collection('paymentHistories').add({
+        tokenNumber: tokenNumber,
+        tokenCounter: newTokenSerial,
+        tokenDatePrefix: datePrefix,
+        tokenTimestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        patientName: name,
+        patientAge: age,
+        patientPhone: appointmentData.phone || '',
+        patientType: patientType,
+        tokenFee: fee,
+        tokenPaid: paid,
+        tokenDue: fee - paid,
+        amount: paid,
+        method: 'নগদ',
+        type: 'payment',
+        note: `টোকেন প্রদান - ${tokenNumber}`,
+        status: (fee - paid) === 0 ? 'paid' : 'due',
+        paymentHistory: initialPaymentHistory,
+        source: 'dashboard',
+        givenBy: givenBy, 
+        reference: givenBy,
+        appointmentId: currentTokenId,
+        serial: originalSerial,
+        appointmentSerial: originalSerial,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        createdBy: sessionStorage.getItem('adminEmail') || 'admin'
+      });
+      
+      showAlert(`✅ টোকেন ${tokenNumber} তৈরি! (সিরিয়াল: ${originalSerial})`, 'success');
+    }
+    
+    await db.collection('appointments').doc(currentTokenId).update({
+      tokenGiven: true,
+      tokenNumber: tokenNumber,
+      tokenTimestamp: firebase.firestore.FieldValue.serverTimestamp(),
+      tokenFee: fee,
+      tokenPaid: paid,
+      lastTokenUpdate: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
+    closeTokenModal();
+    printTokenReceipt(tokenNumber, name, age, patientType, fee, paid);
+    
+    if (allAppointmentsSnapshot) {
+      renderAppointments();
+      updateDashboardCards(allAppointmentsSnapshot);
+    }
+    
+  } catch (error) {
+    console.error("❌ Error saving token:", error);
+    showAlert("সংরক্ষণ করতে সমস্যা হয়েছে: " + error.message, "error");
+  }
+}
+
+async function showTokenDetailsModal(button) {
+  const docId = button.getAttribute('data-id');
+  const doc = await db.collection('appointments').doc(docId).get();
+  const data = doc.data();
+  
+  currentTokenId = docId;
+  
+  // paymentHistories থেকে টোকেন ডাটা নিন
+  let existingToken = null;
+  let paymentHistory = [];
+  
+  const existingTokenQuery = await db.collection('paymentHistories')
+    .where('appointmentId', '==', docId)
+    .limit(1)
+    .get();
+  
+  if (!existingTokenQuery.empty) {
+    existingToken = { id: existingTokenQuery.docs[0].id, ...existingTokenQuery.docs[0].data() };
+    currentTokenDoc = existingToken;
+    paymentHistory = existingToken.paymentHistory || [];
+  } else {
+    currentTokenDoc = { id: docId, ...data };
+  }
+  
+  const defaultFee = data.patientType === 'new' ? 800 : 600;
+  const currentFee = existingToken?.tokenFee || data.tokenFee || defaultFee;
+  const currentPaid = existingToken?.tokenPaid || data.tokenPaid || 0;
+  const due = currentFee - currentPaid;
+  
+  // পেমেন্ট ইতিহাস HTML তৈরি করুন
+  let paymentHistoryHtml = '';
+  if (paymentHistory.length > 0) {
+    const sortedHistory = [...paymentHistory].reverse();
+    const paymentItems = sortedHistory.map(p => {
+      let dateText = 'তারিখ নেই';
+      if (p.timestamp) {
+        try {
+          const date = new Date(p.timestamp);
+          dateText = date.toLocaleString('bn-BD', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+        } catch(e) {
+          dateText = p.timestamp;
+        }
+      }
+      
+      return `
+        <div class="payment-item" style="background: ${p.type === 'payment' ? '#dbeafe' : '#fed7aa'}; padding: 10px; border-radius: 8px; margin-bottom: 8px;">
+          <div><strong>📅 ${dateText}</strong></div>
+          <div>💰 পরিমাণ: ${toBengaliNumber(p.amount)} টাকা</div>
+          <div>💳 পদ্ধতি: ${p.method || 'নগদ'}</div>
+          <div>📝 ধরন: ${p.type === 'payment' ? 'পেমেন্ট' : 'ফেরত'}</div>
+          ${p.note ? `<div>📝 নোট: ${p.note}</div>` : ''}
+          <div style="font-size: 11px; color: #6b7280; margin-top: 5px;">
+            পূর্বের পরিশোধ: ${toBengaliNumber(p.previousPaid)} → নতুন: ${toBengaliNumber(p.newPaid)}
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+    paymentHistoryHtml = `
+      <div class="payment-history">
+        <h4>💳 পেমেন্ট ইতিহাস (${paymentHistory.length}টি):</h4>
+        <div style="max-height: 300px; overflow-y: auto;">
+          ${paymentItems}
+        </div>
+      </div>
+    `;
+  } else {
+    paymentHistoryHtml = '<div class="payment-history"><p style="color:#9ca3af; padding: 20px; text-align: center;">📭 কোনো পেমেন্ট ইতিহাস নেই</p></div>';
+  }
+  
+  const modalHtml = `
+    <div class="token-modal-overlay" id="tokenModalOverlay">
+      <div class="token-modal-container">
+        <div class="token-modal-header">
+          <h3><i class="fas fa-ticket-alt"></i> টোকেন বিস্তারিত</h3>
+          <button class="token-modal-close" onclick="closeTokenModal()">&times;</button>
+        </div>
+        <div class="token-modal-body">
+          <div class="token-form-group">
+            <label>রোগীর নাম</label>
+            <input type="text" id="tokenName" value="${(data.name || '').replace(/"/g, '&quot;')}" placeholder="রোগীর নাম">
+          </div>
+          <div class="token-form-group">
+            <label>বয়স</label>
+            <input type="text" id="tokenAge" value="${getAgeDisplay(data)}" placeholder="বয়স">
+          </div>
+          <div class="token-form-group">
+            <label>রোগীর ধরন</label>
+            <select id="tokenType" onchange="updateFeeByPatientType(this.value)">
+              <option value="new" ${data.patientType === 'new' ? 'selected' : ''}>নতুন রোগী</option>
+              <option value="old" ${data.patientType === 'old' ? 'selected' : ''}>পুরাতন রোগী</option>
+            </select>
+          </div>
+          <div class="token-form-group">
+            <label>ফি (টাকা)</label>
+            <input type="number" id="tokenFee" value="${currentFee}" placeholder="ফি" oninput="updateDueAmount()">
+          </div>
+          <div class="token-form-group">
+            <label>পরিশোধিত টাকা</label>
+            <input type="number" id="tokenPaid" value="${currentPaid}" placeholder="পরিশোধিত টাকা" oninput="updateDueAmount()">
+            <div class="due-amount" id="dueAmount">বাকি: ${due} টাকা</div>
+          </div>
+         <div class="token-form-group">
+          <label>রেফারেন্স</label>
+          <input type="text" id="tokenGivenBy" placeholder="রেফারেন্স নাম লিখুন" style="width:100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px;">
+         </div>
+          ${paymentHistoryHtml} <!-- ✅ পেমেন্ট ইতিহাস দেখান -->
+        </div>
+        <div class="token-modal-actions">
+          <button class="btn-save-print" onclick="saveAndPrintToken()"><i class="fas fa-save"></i> সংরক্ষণ ও প্রিন্ট</button>
+          <button class="btn-cancel-modal" onclick="closeTokenModal()"><i class="fas fa-times"></i> বাতিল</button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+function printTokenReceipt(tokenNumber, name, age, patientType, fee, paid) {
+  const win = window.open('', '_blank');
+  win.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>টোকেন প্রিন্ট</title>
+      <meta charset="UTF-8">
+      <style>
+        @page { size: 80mm auto; margin: 0; }
+        body { font-family: 'Noto Sans Bengali', sans-serif; width: 80mm; padding: 10px; margin: 0 auto; }
+        .card { border: 1px dashed #2563eb; border-radius: 8px; padding: 12px; text-align: center; }
+        .header { border-bottom: 1px dashed #e5e7eb; padding-bottom: 8px; margin-bottom: 8px; }
+        .header h2 { font-size: 16px; color: #2563eb; margin: 0 0 3px 0; }
+        .token-num { font-size: 22px; font-weight: bold; color: #2563eb; margin: 8px 0; }
+        .info-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed #e5e7eb; font-size: 12px; }
+        .footer { margin-top: 10px; font-size: 9px; color: #9ca3af; text-align: center; }
+      </style>
+    </head>
+    <body>
+      <div class="card">
+        <div class="header"><h2>ডাঃ মোঃ ওয়াহিদুজ্জামান মাসুম</h2></div>
+        <div class="token-num">${tokenNumber}</div>
+        <div class="info-row"><span>রোগীর নাম:</span><span>${name || '—'}</span></div>
+        <div class="info-row"><span>বয়স:</span><span>${age || '—'}</span></div>
+        <div class="info-row"><span>ধরন:</span><span>${patientType === 'new' ? 'নতুন' : 'পুরাতন'}</span></div>
+        <div class="info-row"><span>ফি:</span><span>${fee} টাকা</span></div>
+        <div class="footer"><p>ধন্যবাদ 🙏 সুস্থ থাকুন</p><p>${new Date().toLocaleString('bn-BD')}</p></div>
+      </div>
+      <div class="no-print" style="text-align:center;margin-top:20px;">
+        <button onclick="window.print()" style="padding:10px 20px;background:#2563eb;color:white;border:none;border-radius:8px;">🖨️ প্রিন্ট করুন</button>
+      </div>
+      <script>window.onload = function() { setTimeout(() => window.print(), 500); }<\/script>
+    </body>
+    </html>
+  `);
+  win.document.close();
+}
+    
+    function closeTokenModal() {
+      const overlay = document.getElementById('tokenModalOverlay');
+      if (overlay) overlay.remove();
+      currentTokenId = null;
+      currentTokenData = null;
+    }
+    // =======================================================
+    // ৯. কুইক সিরিয়াল ম্যানেজমেন্ট (grid.js ব্যবহার করে)
+    // =======================================================
+    
+async function loadSerialRanges() {
+  try {
+    console.log("📊 Loading serial ranges from Firebase...");
+    const rangesDoc = await db.collection('settings').doc('serialRanges').get();
+    
+    if (rangesDoc.exists) {
+      serialRanges = rangesDoc.data();
+      console.log("✅ Serial ranges loaded successfully:");
+      console.log("📋 Available days:", Object.keys(serialRanges));
+      
+      // প্রতিটি দিনের সময় দেখান
+      for (const day in serialRanges) {
+        console.log(`📅 ${day}:`);
+        for (const type in serialRanges[day]) {
+          const times = Object.keys(serialRanges[day][type]);
+          console.log(`   👤 ${type}: ${times.length} times -`, times);
+        }
+      }
+      
+      // ✅ serialRanges লোড হওয়ার পর টাইম ফিল্টার আপডেট করুন
+      if (typeof updateTimeOptions === 'function') {
+        console.log("🔄 Updating time options after loading serialRanges");
+        updateTimeOptions();
+      }
+      
+      return serialRanges;
+    } else {
+      console.warn("⚠️ No serial ranges found in database");
+      console.warn("💡 Please create serialRanges in settings collection first!");
+      serialRanges = {
+        Thursday: { new: {}, old: {} },
+        Friday: { new: {}, old: {} }
+      };
+      return serialRanges;
+    }
+  } catch (error) {
+    console.error("❌ Error loading serial ranges:", error);
+    return null;
+  }
+}
+    
+    function initializeQuickSerialModal() {
+      console.log("🟢 initializeQuickSerialModal কল হয়েছে");
+      
+      // মোডাল কন্ট্রোল - ডেস্কটপ
+      elements.openAddSerialModalBtn.addEventListener('click', async () => {
+        console.log("🟢 মোডাল ওপেন বাটনে ক্লিক করা হয়েছে");
+        
+        elements.quickSerialModal.style.display = 'flex';
+        console.log("🟢 মোডাল display: flex সেট করা হয়েছে");
+        
+        // ✅ প্রথমে serialRanges লোড করুন
+        console.log("🔄 Loading serial ranges before grid initialization");
+        await loadSerialRanges();
+        
+        try {
+          await initializeGridSystem();
+          console.log("✅ initializeGridSystem সফলভাবে সম্পন্ন হয়েছে");
+        } catch (error) {
+          console.error("❌ initializeGridSystem তে ত্রুটি:", error);
+          showAlert('গ্রিড সিস্টেম লোড করতে সমস্যা হয়েছে', 'error');
+        }
+      });
+      
+      // মোডাল কন্ট্রোল - মোবাইল
+      if (elements.openAddSerialModalBtnMobile) {
+        elements.openAddSerialModalBtnMobile.addEventListener('click', async () => {
+          console.log("🟢 মোবাইল মোডাল ওপেন বাটনে ক্লিক করা হয়েছে");
+          
+          elements.quickSerialModal.style.display = 'flex';
+          console.log("🟢 মোডাল display: flex সেট করা হয়েছে");
+          
+          // ✅ প্রথমে serialRanges লোড করুন
+          console.log("🔄 Loading serial ranges before grid initialization");
+          await loadSerialRanges();
+          
+          try {
+            await initializeGridSystem();
+            console.log("✅ initializeGridSystem সফলভাবে সম্পন্ন হয়েছে");
+          } catch (error) {
+            console.error("❌ initializeGridSystem তে ত্রুটি:", error);
+            showAlert('গ্রিড সিস্টেম লোড করতে সমস্যা হয়েছে', 'error');
+          }
+        });
+      }
+      
+      elements.closeQuickModal.addEventListener('click', () => {
+        console.log("🔴 মোডাল ক্লোজ বাটনে ক্লিক");
+        elements.quickSerialModal.style.display = 'none';
+        resetQuickSerialForm();
+        
+        // Grid System ক্লিনআপ
+        if (gridSystem) {
+          try {
+            gridSystem.cleanup();
+          } catch (e) {
+            console.warn("⚠️ ক্লিনআপে সমস্যা:", e);
+          }
+          gridSystem = null;
+        }
+      });
+      
+      elements.cancelQuickModal.addEventListener('click', () => {
+        console.log("🔴 মোডাল ক্যান্সেল বাটনে ক্লিক");
+        elements.quickSerialModal.style.display = 'none';
+        resetQuickSerialForm();
+        
+        // Grid System ক্লিনআপ
+        if (gridSystem) {
+          try {
+            gridSystem.cleanup();
+          } catch (e) {
+            console.warn("⚠️ ক্লিনআপে সমস্যা:", e);
+          }
+          gridSystem = null;
+        }
+      });
+      
+      // দিন পরিবর্তনে সময় অপশন আপডেট
+      elements.quickDay.addEventListener('change', () => {
+        console.log("📅 Quick day changed:", elements.quickDay.value);
+        updateQuickTimeOptions();
+      });
+      
+      // সময় পরিবর্তনে গ্রিড আপডেট
+      elements.quickTime.addEventListener('change', () => {
+        console.log("🕒 Quick time changed:", elements.quickTime.value);
+        
+        // Grid System আপডেট
+        if (gridSystem) {
+          setTimeout(() => {
+            gridSystem.updateGrid();
+          }, 100);
+        }
+      });
+      
+      // রোগীর ধরন সিলেকশন
+      document.querySelectorAll('.serial-type-card').forEach(card => {
+        card.addEventListener('click', function() {
+          console.log("👥 Patient type clicked:", this.getAttribute('data-type'));
+          
+          document.querySelectorAll('.serial-type-card').forEach(c => {
+            c.classList.remove('selected');
+          });
+          this.classList.add('selected');
+          elements.selectedPatientType.value = this.getAttribute('data-type');
+          
+          updateQuickTimeOptions();
+          
+          // Grid System আপডেট
+          if (gridSystem) {
+            setTimeout(() => {
+              gridSystem.updateGrid();
+            }, 100);
+          }
+        });
+      });
+      
+      // ফর্ম সাবমিট
+      elements.quickSerialForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        console.log("📤 Quick serial form submitted");
+        await addQuickSerial();
+      });
+    }
+    
+    async function initializeGridSystem() {
+  console.log("🚀 অ্যাডমিন Grid System ইনিশিয়ালাইজ (মাল্টি সিলেক্ট)...");
+  
+  if (!db) {
+    console.error("❌ Firebase DB নেই");
+    showAlert('Firebase সংযোগ নেই', 'error');
+    return;
+  }
+  
+  if (!elements.serialGrid) {
+    console.error("❌ serialGrid উপাদান পাওয়া যায়নি");
+    return;
+  }
+  
+  if (gridSystem) {
+    try {
+      gridSystem.cleanup();
+    } catch (e) {
+      console.warn("⚠️ ক্লিনআপে সমস্যা:", e);
+    }
+    gridSystem = null;
+  }
+  
+  try {
+   elements.serialGrid.innerHTML = '<div style="grid-column: 1 / -1; display: flex; justify-content: center; align-items: center; width: 100%; padding: 20px; text-align: center; color: #3b82f6; white-space: nowrap;">গ্রিড লোড হচ্ছে...</div>';
+    
+    if (Object.keys(serialRanges).length === 0) {
+      await loadSerialRanges();
+    }
+    
+    // ✅ মাল্টি সিলেক্ট সক্ষম করে Grid System তৈরি
+    gridSystem = new RealTimeGridSystem({
+      db: db,
+      gridContainerId: 'serialGrid',
+      selectedSerialInputId: 'serialInput',
+      dayElementId: 'quickDay',
+      timeElementId: 'quickTime',
+      typeElementId: 'selectedPatientType',
+      mode: 'admin',
+      adminSessionId: adminSessionId,
+      adminPendingExpiry: 5 * 60 * 1000,
+      multiSelect: true,
+      
+      onSerialClick: function(data) {
+        console.log('Serial clicked:', data);
+        const activeIndex = getActivePatientIndex();
+        if (gridSystem) {
+          gridSystem.setCurrentPatientIndex(activeIndex);
+          updateAllSerialDisplays();
+
+         setTimeout(() => {
+            if (gridSystem && gridSystem.updateGrid) {
+                gridSystem.updateGrid();
+            }
+        }, 50);
+    }
+},
+      
+      onGridUpdate: function(type, data) {
+        console.log(`Grid updated: ${type}`, data);
+      },
+      
+      onPendingUpdate: function(pendingData) {
+        console.log('Pending selections updated:', pendingData);
+        updateAllSerialDisplays();
+      }
+    });
+    
+    const success = await gridSystem.init();
+    
+    if (success) {
+      console.log("✅ অ্যাডমিন Grid System সফলভাবে ইনিশিয়ালাইজ হয়েছে");
+      updateQuickTimeOptions();
+      
+      setTimeout(() => {
+        if (gridSystem) {
+          gridSystem.updateGrid();
+        }
+      }, 100);
+    } else {
+      console.error("❌ Grid System ইনিশিয়ালাইজ ব্যর্থ");
+      elements.serialGrid.innerHTML = '<div style="padding: 20px; text-align: center; color: #dc2626;">গ্রিড লোড করতে সমস্যা হয়েছে</div>';
+    }
+    
+  } catch (error) {
+    console.error("❌ Grid System তৈরি ত্রুটি:", error);
+    elements.serialGrid.innerHTML = `<div style="padding: 20px; text-align: center; color: #dc2626;">ত্রুটি: ${error.message}</div>`;
+  }
+}
+
+// সক্রিয় রোগীর ইন্ডেক্স বের করুন
+function getActivePatientIndex() {
+  const activePatient = document.querySelector('.patient-card.active');
+  if (activePatient) {
+    return parseInt(activePatient.getAttribute('data-patient-index'));
+  }
+  return 0;
+}
+    
+   function updateQuickTimeOptions() {
+  const day = elements.quickDay.value;
+  const type = elements.selectedPatientType.value;
+  
+  console.log("🕒 Quick time options update:", { day, type });
+  console.log("Serial Ranges available:", serialRanges);
+  
+  if (!day) {
+    elements.quickTime.innerHTML = '<option value="">দিন নির্বাচন করুন</option>';
+    if (elements.serialGrid) {
+      elements.serialGrid.innerHTML = '<div style="padding: 20px; text-align: center; color: #6b7280;">দিন নির্বাচন করুন</div>';
+    }
+    return;
+  }
+  
+  // ✅ সিরিয়াল রেঞ্জ থেকে সময় অপশন গুলো নেওয়া
+  const times = [];
+  
+  if (serialRanges && serialRanges[day] && serialRanges[day][type]) {
+    Object.keys(serialRanges[day][type]).forEach(time => {
+      if (time && time.trim() !== '') {
+        times.push(time);
+      }
+    });
+    console.log("✅ Found times in serialRanges:", times);
+  } else {
+    console.warn("❌ No serial ranges found for", day, type);
+    console.log("Available days in serialRanges:", Object.keys(serialRanges));
+    console.log("Available types for", day, ":", serialRanges[day] ? Object.keys(serialRanges[day]) : "none");
+  }
+  
+  // সময় সাজানো
+  const sortedTimes = sortTimes(times);
+  
+  const currentSelectedTime = elements.quickTime.value;
+  elements.quickTime.innerHTML = '<option value="">সময় নির্বাচন করুন</option>';
+  
+  if (sortedTimes.length === 0) {
+    console.warn("⚠️ No time slots found for", day, type);
+    elements.quickTime.innerHTML = '<option value="">কোনো সময় স্লট নেই</option>';
+    
+    if (gridSystem) {
+      gridSystem.updateGrid();
+    }
+    
+    // গ্রিডে মেসেজ দেখান
+    if (elements.serialGrid) {
+      elements.serialGrid.innerHTML = '<div class="grid-no-selection">এই দিন/ধরনের জন্য কোনো সময় স্লট নেই</div>';
+    }
+    return;
+  }
+  
+  sortedTimes.forEach(time => {
+    const option = document.createElement('option');
+    option.value = time;
+    option.textContent = time;
+    
+    // আগে সিলেক্ট করা থাকলে সেটি রাখা
+    if (time === currentSelectedTime) {
+      option.selected = true;
+    }
+    
+    elements.quickTime.appendChild(option);
+  });
+  
+  console.log("✅ Time options updated:", sortedTimes.length, "options");
+  
+  // ✅ Grid System আপডেট
+  if (gridSystem) {
+    console.log("🔄 Updating grid with new time selection");
+    setTimeout(() => {
+      gridSystem.updateGrid();
+    }, 100);
+  }
+}
+
+    // =======================================================
+// তারিখ গণনা ফাংশন যোগ করুন (search.html থেকে)
+// =======================================================
+function getNextDateByDay(targetDay) {
+  const daysMap = {
+    "Sunday": 0,
+    "Monday": 1,
+    "Tuesday": 2,
+    "Wednesday": 3,
+    "Thursday": 4,
+    "Friday": 5,
+    "Saturday": 6
+  };
+  
+  const targetDayIndex = daysMap[targetDay];
+  const today = new Date();
+  
+  const todayIndex = today.getDay();
+  let daysToAdd = targetDayIndex - todayIndex;
+  
+  if (daysToAdd < 0) {
+    daysToAdd += 7;
+  }
+  
+  const nextDate = new Date(today);
+  nextDate.setDate(today.getDate() + daysToAdd);
+  
+  const year = nextDate.getFullYear();
+  const month = String(nextDate.getMonth() + 1).padStart(2, '0');
+  const day = String(nextDate.getDate()).padStart(2, '0');
+  
+  return {
+    date: nextDate,
+    dateString: `${year}-${month}-${day}`,
+    displayDate: nextDate.toLocaleDateString('bn-BD', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    })
+  };
+}
+    
+async function addQuickSerial() {
+  const startTime = Date.now();
+  console.log('🚀 সিরিয়াল বুকিং শুরু...');
+  
+  if (!db) {
+    showAlert('Firebase সংযোগ নেই', 'error');
+    return;
+  }
+  
+  if (!gridSystem) {
+    showAlert('গ্রিড সিস্টেম লোড হয়নি', 'error');
+    return;
+  }
+  
+  const day = elements.quickDay.value;
+  const time = elements.quickTime.value;
+  const type = elements.selectedPatientType.value;
+  
+  if (!day || !time) {
+    showAlert('দিন এবং সময় নির্বাচন করুন', 'error');
+    return;
+  }
+  
+  const allPatients = getAllPatientsData();
+  const phone = getCommonPhoneNumber();
+  
+  // ফোন চেক
+  const skipPhoneCheckbox = document.getElementById('skipPhoneCheckbox');
+  const skipPhone = skipPhoneCheckbox ? skipPhoneCheckbox.checked : false;
+  
+  if (!skipPhone && (!phone || !/^01[0-9]{9}$/.test(phone))) {
+    showAlert('সঠিক ফোন নম্বর দিন অথবা "ফোন ছাড়া বুকিং" চেকবক্স টিক করুন', 'error');
+    return;
+  }
+  
+  // ভ্যালিডেশন
+  let hasError = false;
+  const selectedSerials = [];
+  
+  for (let i = 0; i < allPatients.length; i++) {
+    const patient = allPatients[i];
+    
+    if (!patient.name) {
+      showAlert(`রোগী ${i + 1} এর নাম দিন`, 'error');
+      hasError = true;
+    }
+    
+    const hasAge = patient.ageYears > 0 || patient.ageMonths > 0 || patient.ageDays > 0;
+    if (!hasAge) {
+      showAlert(`রোগী ${i + 1} (${patient.name || 'নাম নেই'}) এর বয়স দিন`, 'error');
+      hasError = true;
+    }
+    
+    const patientSerials = gridSystem.getSerialsForPatient(i);
+    if (patientSerials.length === 0) {
+      showAlert(`রোগী ${i + 1} (${patient.name || 'নাম নেই'}) এর জন্য সিরিয়াল সিলেক্ট করুন`, 'error');
+      hasError = true;
+    } else if (patientSerials.length > 1) {
+      showAlert(`রোগী ${i + 1} (${patient.name}) এর জন্য একাধিক সিরিয়াল সিলেক্ট করেছেন। প্রতিটি রোগীর জন্য একটি করে সিরিয়াল সিলেক্ট করুন।`, 'error');
+      hasError = true;
+    } else {
+      selectedSerials.push(patientSerials[0]);
+    }
+  }
+  
+  if (hasError) return;
+  
+  // ডুপ্লিকেট সিরিয়াল চেক
+  const uniqueSerials = [...new Set(selectedSerials)];
+  if (uniqueSerials.length !== selectedSerials.length) {
+    showAlert('একই সিরিয়াল একাধিক রোগীর জন্য সিলেক্ট করা যাবে না!', 'error');
+    return;
+  }
+  
+  // UI আপডেট
+  const submitBtn = document.getElementById('submitQuickBtn');
+  const originalText = submitBtn.innerHTML;
+  submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> যুক্ত করা হচ্ছে...';
+  submitBtn.disabled = true;
+  
+  try {
+    const appointmentDateInfo = getNextDateByDay(day);
+    const allSelectedDetails = gridSystem.getAllSelectedSerialsWithDetails();
+    
+    // ✅ BATCH WRITE - সব অপারেশন একসাথে
+    const batch = db.batch();
+    
+    for (let i = 0; i < allPatients.length; i++) {
+      const patient = allPatients[i];
+      const serial = selectedSerials[i];
+      const pendingDetail = allSelectedDetails.find(d => d.serial === serial && d.patientIndex === i);
+      
+      // বয়স নরমালাইজ করুন
+      const normalized = normalizeAge(patient.ageYears, patient.ageMonths, patient.ageDays);
+      let ageParts = [];
+      if (normalized.years > 0) ageParts.push(`${normalized.years} বছর`);
+      if (normalized.months > 0) ageParts.push(`${normalized.months} মাস`);
+      if (normalized.days > 0) ageParts.push(`${normalized.days} দিন`);
+      const ageString = ageParts.join(', ');
+      
+      // নতুন ডকুমেন্ট রেফারেন্স তৈরি
+      const newDocRef = db.collection('appointments').doc();
+      batch.set(newDocRef, {
+        name: patient.name,
+        age: ageString,
+        ageYears: normalized.years,
+        ageMonths: normalized.months,
+        ageDays: normalized.days,
+        phone: phone || null,
+        day: day,
+        time: time,
+        patientType: type,
+        type: type,
+        serial: serial,
+        called: false,
+        tokenGiven: false,
+        status: 'confirmed',
+        appointmentDate: appointmentDateInfo.dateString,
+        appointmentDateDisplay: appointmentDateInfo.displayDate,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      
+      // পেন্ডিং সিলেকশন ডিলিট (যদি থাকে)
+      if (pendingDetail && pendingDetail.pendingId) {
+        const pendingRef = db.collection('pendingSelections').doc(pendingDetail.pendingId);
+        batch.delete(pendingRef);
+      }
+    }
+    
+    // ✅ একবারেই কমিট করুন (একটিমাত্র নেটওয়ার্ক কল)
+    await batch.commit();
+    
+    const elapsed = Date.now() - startTime;
+    console.log(`✅ বুকিং সম্পন্ন: ${elapsed}ms`);
+
+ // ==================== SMS Integration (Multi-Serial Supported) ====================
+try {
+  const patientName = appointmentData.name || "Patient";
+  const selectedPhone = appointmentData.phone;
+  const englishDateStr = appointmentData.date || ""; 
+  const appointmentTime = appointmentData.time || "07:00 PM"; 
+
+  const apiKey = '74a82f2a949057f0e67fa4b672f75275';
+  const sender = '8809617635159';
+
+  // 💡 Serial jodi ekadik thake (jemon: "5, 6, 7"), tobe shegulo alada kora
+  // Jodi ekti serial thake tobeo eta array hishebe kaj korbe
+  const serialString = String(appointmentData.serial);
+  const serialArray = serialString.split(',').map(s => s.trim());
+
+  console.log(`🚀 Total serials found: ${serialArray.length}. Sending individual SMS...`);
+
+  // Each serial er jonno alada alada SMS pathanor loop
+  serialArray.forEach((singleSerial) => {
+    
+    // Protita serial er jonno alada unique message template
+    const smsMessage = `Dear ${patientName}, your Serial No: ${singleSerial}, Date: ${englishDateStr}, Please Present At: ${appointmentTime}. Thank you! For the next serial, visit: https://drmasum.netlify.app/`;
+
+    const automasUrl = `https://api.automas.com.bd/smsapiv3?apikey=${apiKey}&sender=${sender}&msisdn=${selectedPhone}&smstext=${encodeURIComponent(smsMessage)}`;
+
+    // no-cors mode-e backend-e request pathano
+    fetch(automasUrl, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    })
+    .then(() => {
+      console.log(`📥 SMS sent successfully for Serial No: ${singleSerial}`);
+    })
+    .catch(err => {
+      console.warn(`⚠️ SMS Network Error for Serial ${singleSerial}:`, err);
+    });
+  });
+
+} catch (error) {
+  console.error("❌ SMS Gateway Connection Error in Dashboard:", error);
+}
+// ===================================================================================
+
+
+    
+    showAlert(`✅ ${allPatients.length} জন রোগী সফলভাবে বুক হয়েছে!\n📞 ফোন: ${phone || 'ছাড়া'}\n🎫 সিরিয়াল: ${selectedSerials.join(', ')}`, 'success');
+    
+    if (gridSystem) {
+      gridSystem.clearAllSelections();
+    }
+    resetQuickSerialForm();
+    elements.quickSerialModal.style.display = 'none';
+    
+  } catch (error) {
+    console.error('❌ Batch write error:', error);
+    showAlert(`বুকিং করতে সমস্যা হয়েছে: ${error.message}`, 'error');
+  } finally {
+    submitBtn.innerHTML = originalText;
+    submitBtn.disabled = false;
+  }
+}
+  
+function resetQuickSerialForm() {
+  // ১. মেইন ফর্ম রিসেট
+  if (elements && elements.quickSerialForm) {
+    elements.quickSerialForm.reset();
+  } else {
+    const form = document.getElementById('quickSerialForm');
+    if (form) form.reset();
+  }
+
+  // ২. সিলেক্টেড সিরিয়াল ইনপুট খালি করা
+  if (elements && elements.serialInput) {
+    elements.serialInput.value = '';
+  } else {
+    const serialInput = document.getElementById('serialInput');
+    if (serialInput) serialInput.value = '';
+  }
+  
+  // ✅ ফোন চেকবক্স রিসেট করুন
+  const skipPhoneCheckbox = document.getElementById('skipPhoneCheckbox');
+  const phoneFieldContainer = document.getElementById('phoneFieldContainer');
+  const quickPhoneInput = document.getElementById('quickPhone');
+  
+  if (skipPhoneCheckbox) {
+    skipPhoneCheckbox.checked = false;
+  }
+  if (phoneFieldContainer) {
+    phoneFieldContainer.style.display = 'block';
+  }
+  if (quickPhoneInput) {
+    quickPhoneInput.setAttribute('required', 'required');
+    quickPhoneInput.value = '';
+  }
+  
+  // ✅ বয়স ফিল্ড রিসেট (যদি আপনার elements অবজেক্টে সরাসরি ম্যাপ করা থাকে)
+  if (elements) {
+    if (elements.quickAgeYears) elements.quickAgeYears.value = '';
+    if (elements.quickAgeMonths) elements.quickAgeMonths.value = '';
+    if (elements.quickAgeDays) elements.quickAgeDays.value = '';
+  }
+  
+  // রোগীর ধরন রিসেট
+  document.querySelectorAll('.serial-type-card').forEach(card => {
+    card.classList.remove('selected');
+  });
+  const newTypeCard = document.querySelector('.serial-type-card[data-type="new"]');
+  if (newTypeCard) newTypeCard.classList.add('selected');
+  
+  if (elements && elements.selectedPatientType) {
+    elements.selectedPatientType.value = 'new';
+  } else {
+    const selectedPatientType = document.getElementById('selectedPatientType');
+    if (selectedPatientType) selectedPatientType.value = 'new';
+  }
+
+  // ==========================================================
+  // ✅ ৩. 👥 অতিরিক্ত সব রোগীর ফর্ম ডিলিট করে ডিফল্ট ১টি রাখা
+  // ==========================================================
+  const container = document.getElementById('patientsContainer');
+  if (container) {
+    const patientCards = container.querySelectorAll('.patient-card');
+    
+    patientCards.forEach((card, index) => {
+      if (index === 0) {
+        // প্রথম (Default) কার্ডটি থাকবে, এটিকে সক্রিয় (Active) করে এর ভেতরের ইনপুট পরিষ্কার করা হচ্ছে
+        card.className = 'patient-card active';
+        card.style.cssText = 'background: #eff6ff; padding: 15px; border-radius: 8px; margin-bottom: 12px; border: 2px solid #3b82f6;';
+        
+        const nameInput = card.querySelector('.patient-name');
+        const ageYears = card.querySelector('.patient-age-years');
+        const ageMonths = card.querySelector('.patient-age-months');
+        const ageDays = card.querySelector('.patient-age-days');
+        const serialDisplay = card.querySelector('.selected-serial-display');
+        const serialNumbers = card.querySelector('.serial-numbers');
+        const removeBtn = card.querySelector('.remove-patient-btn');
+
+        if (nameInput) nameInput.value = '';
+        if (ageYears) ageYears.value = '';
+        if (ageMonths) ageMonths.value = '';
+        if (ageDays) ageDays.value = '';
+        
+        // আগের কোনো সিরিয়াল সিলেক্ট করা থাকলে তা হাইড করা
+        if (serialDisplay) serialDisplay.style.display = 'none';
+        if (serialNumbers) serialNumbers.textContent = '—';
+        if (removeBtn) removeBtn.style.display = 'none'; // ১ম কার্ডের ডিলিট বাটন হাইড থাকবে
+        
+      } else {
+        // বাকি ২য় বা ৩য় যত অতিরিক্ত রোগীর ফর্ম তৈরি হয়েছিল, ডম (DOM) থেকে রিমুভ করে দেওয়া হলো
+        card.remove();
+      }
+    });
+  }
+
+  // ইনডেক্স ঠিক করার গ্লোবাল ফাংশন থাকলে তা কল করা (ইনডেক্স আবার ০ থেকে শুরু হবে)
+  if (typeof updatePatientIndices === 'function') {
+    updatePatientIndices();
+  }
+}
+
+    // =======================================================
+    // ১০. ফিল্টার লিসেনার সেটআপ (ডেস্কটপ এবং মোবাইল উভয়ের জন্য)
+    // =======================================================
+    function setupFilterListeners() {
+      // সার্চ ফাংশন
+      const handleSearch = (value) => {
+        currentFilters.search = value.toLowerCase().trim();
+        renderAppointments();
+        updateDashboardCards(allAppointmentsSnapshot);
+      };
+      
+      // সার্চ টাইমআউট
+      let searchTimeout;
+      
+      // ডেস্কটপ ফিল্টার ইভেন্ট
+elements.dayFilter.addEventListener('change', (e) => {
+  const value = e.target.value;
+  currentFilters.day = value;
+  if (elements.dayFilterMobile) elements.dayFilterMobile.value = value;
+  updateTimeOptions();  // ✅ এই লাইনটি থাকতে হবে
+  renderAppointments();
+  updateDashboardCards(allAppointmentsSnapshot);
+  updateSerialStats();
+});
+
+elements.typeFilter.addEventListener('change', (e) => {
+  const value = e.target.value;
+  currentFilters.type = value;
+  if (elements.typeFilterMobile) elements.typeFilterMobile.value = value;
+  updateTimeOptions();  // ✅ এই লাইনটি থাকতে হবে
+  renderAppointments();
+  updateDashboardCards(allAppointmentsSnapshot);
+});
+      
+      elements.timeFilter.addEventListener('change', (e) => {
+        const value = e.target.value;
+        currentFilters.time = value;
+        if (elements.timeFilterMobile) elements.timeFilterMobile.value = value;
+        renderAppointments();
+        updateDashboardCards(allAppointmentsSnapshot);
+      });
+      
+      elements.callStatusFilter.addEventListener('change', (e) => {
+        const value = e.target.value;
+        currentFilters.callStatus = value;
+        if (elements.callStatusFilterMobile) elements.callStatusFilterMobile.value = value;
+        renderAppointments();
+        updateDashboardCards(allAppointmentsSnapshot);
+      });
+      
+      elements.tokenStatusFilter.addEventListener('change', (e) => {
+        const value = e.target.value;
+        currentFilters.tokenStatus = value;
+        if (elements.tokenStatusFilterMobile) elements.tokenStatusFilterMobile.value = value;
+        renderAppointments();
+        updateDashboardCards(allAppointmentsSnapshot);
+      });
+      
+      elements.searchInput.addEventListener('input', (e) => {
+        const value = e.target.value;
+        if (elements.searchInputMobile) elements.searchInputMobile.value = value;
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => handleSearch(value), 300);
+      });
+      
+      // মোবাইল ফিল্টার ইভেন্ট
+      if (elements.dayFilterMobile) {
+        elements.dayFilterMobile.addEventListener('change', (e) => {
+          const value = e.target.value;
+          currentFilters.day = value;
+          elements.dayFilter.value = value;
+          updateTimeOptions();
+          renderAppointments();
+          updateDashboardCards(allAppointmentsSnapshot);
+          updateSerialStats();
+        });
+      }
+      
+      if (elements.typeFilterMobile) {
+        elements.typeFilterMobile.addEventListener('change', (e) => {
+          const value = e.target.value;
+          currentFilters.type = value;
+          elements.typeFilter.value = value;
+          updateTimeOptions();
+          renderAppointments();
+          updateDashboardCards(allAppointmentsSnapshot);
+        });
+      }
+      
+      if (elements.timeFilterMobile) {
+        elements.timeFilterMobile.addEventListener('change', (e) => {
+          const value = e.target.value;
+          currentFilters.time = value;
+          elements.timeFilter.value = value;
+          renderAppointments();
+          updateDashboardCards(allAppointmentsSnapshot);
+        });
+      }
+      
+      if (elements.callStatusFilterMobile) {
+        elements.callStatusFilterMobile.addEventListener('change', (e) => {
+          const value = e.target.value;
+          currentFilters.callStatus = value;
+          elements.callStatusFilter.value = value;
+          renderAppointments();
+          updateDashboardCards(allAppointmentsSnapshot);
+        });
+      }
+      
+      if (elements.tokenStatusFilterMobile) {
+        elements.tokenStatusFilterMobile.addEventListener('change', (e) => {
+          const value = e.target.value;
+          currentFilters.tokenStatus = value;
+          elements.tokenStatusFilter.value = value;
+          renderAppointments();
+          updateDashboardCards(allAppointmentsSnapshot);
+        });
+      }
+      
+      if (elements.searchInputMobile) {
+        elements.searchInputMobile.addEventListener('input', (e) => {
+          const value = e.target.value;
+          elements.searchInput.value = value;
+          clearTimeout(searchTimeout);
+          searchTimeout = setTimeout(() => handleSearch(value), 300);
+        });
+      }
+    }
+
+function setupRealtimeListener() {
+  if (!db) return () => {};
+  
+  console.log("🔄 ড্যাশবোর্ড অপ্টিমাইজড রিয়েল-টাইম লিসেনার চালু হচ্ছে...");
+  
+  // 🕒 চলতি সপ্তাহের শুরুর দিন (শনিবার) থেকে ডেটা ফিল্টার করার লজিক
+  const today = new Date();
+  const dayOfWeek = today.getDay(); // ০ = রবিবার, ৬ = শনিবার
+  const lastSaturday = new Date(today);
+  
+  // শনিবারে সপ্তাহ শুরু ধরে বিগত শনিবারে নিয়ে যাওয়ার ক্যালকুলেশন
+  const daysSinceSaturday = (dayOfWeek + 1) % 7; 
+  lastSaturday.setDate(today.getDate() - daysSinceSaturday);
+  lastSaturday.setHours(0, 0, 0, 0); // শনিবার রাত ১২:০০ টা
+
+  // 🔥 ১ নম্বর অপ্টিমাইজড কুয়েরি: পুরোনো ৩০০০ ডেটা সার্ভার থেকে রিড হবে না
+  const unsubscribeAppointments = db.collection('appointments')
+    .where('timestamp', '>=', firebase.firestore.Timestamp.fromDate(lastSaturday)) // 👈 ফিল্টার যুক্ত করা হলো
+    .onSnapshot(snapshot => {
+      console.log(`📊 ড্যাশবোর্ডে শুধুমাত্র চলতি সপ্তাহের ${snapshot.size} টি ডেটা রিয়েল-টাইমে আপডেট হয়েছে`);
+      allAppointmentsSnapshot = snapshot;
+      renderAppointments();
+      updateDashboardCards(snapshot);
+    }, error => {
+      console.error('❌ Appointments listener error:', error);
+    });
+
+  // 🔥 ২ নম্বর অপ্টিমাইজড কুয়েরি: শুধুমাত্র সচল পেন্ডিং ডেটা ফিল্টার
+  const unsubscribePending = db.collection('pendingSelections')
+    .where('expiresAt', '>', new Date()) // 👈 শুধুমাত্র সচল সিলেকশনগুলো আনবে
+    .onSnapshot(snapshot => {
+      pendingSelections = {};
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const key = `${data.appointmentDate}_${data.day}_${data.timeSlot}_${data.patientType}_${data.serial}`;
+        pendingSelections[key] = {
+          id: doc.id,
+          ...data
+        };
+      });
+      
+      if (typeof gridSystem !== 'undefined' && gridSystem) {
+        gridSystem.safeUpdateGrid();
+      }
+    }, error => {
+      console.error('❌ Pending selections listener error:', error);
+    });
+
+  // পেজ বন্ধের সময় একসাথে দুটি লিসেনারই বন্ধ করার রিটার্ন ফাংশন
+  return () => {
+    unsubscribeAppointments();
+    unsubscribePending();
+  };
+}
+
+// =======================================================
+// ১২. ইনিশিয়ালাইজেশন (সংশোধিত ও ক্লিন)
+// =======================================================
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('DOM loaded, initializing...');
+  
+  // Firebase চেক
+  if (!db) {
+    if (elements && elements.loadingMessage) {
+      elements.loadingMessage.textContent = 'Firebase সংযোগ নেই';
+    }
+    showAlert('Firebase সংযোগ নেই', 'error');
+    return;
+  }
+  
+  // লোডিং শো
+  if (elements && elements.loadingMessage) {
+    elements.loadingMessage.style.display = 'block';
+  }
+  
+  // ফিল্টার লিসেনার
+  setupFilterListeners();
+  
+  // কুইক সিরিয়াল মোডাল
+  initializeQuickSerialModal();
+  
+  // ✅ ফোন চেকবক্সের ইভেন্ট লিসেনার
+  const skipPhoneCheckbox = document.getElementById('skipPhoneCheckbox');
+  const phoneFieldContainer = document.getElementById('phoneFieldContainer');
+  const quickPhoneInput = document.getElementById('quickPhone');
+  
+  if (skipPhoneCheckbox && phoneFieldContainer) {
+    skipPhoneCheckbox.addEventListener('change', function() {
+      if (this.checked) {
+        phoneFieldContainer.style.display = 'none';
+        if (quickPhoneInput) {
+          quickPhoneInput.removeAttribute('required');
+          quickPhoneInput.value = '';
+        }
+      } else {
+        phoneFieldContainer.style.display = 'block';
+        if (quickPhoneInput) {
+          quickPhoneInput.setAttribute('required', 'required');
+        }
+      }
+    });
+  }
+  
+  // ✅ রোগী যোগ করার বাটন
+  const addPatientBtn = document.getElementById('addPatientBtn');
+  if (addPatientBtn) {
+    addPatientBtn.addEventListener('click', addPatientField);
+    console.log("✅ + বাটন ইভেন্ট যোগ হয়েছে");
+  }
+  
+  // ✅ পেশেন্ট কন্টেইনার ক্লিক ইভেন্ট
+  const patientsContainer = document.getElementById('patientsContainer');
+  if (patientsContainer) {
+    patientsContainer.addEventListener('click', function(e) {
+      const patientCard = e.target.closest('.patient-card');
+      if (patientCard && !e.target.closest('.remove-patient-btn')) {
+        setActivePatient(patientCard);
+      }
+    });
+  }
+  
+  // ✅ প্রথম পেশেন্ট অ্যাক্টিভ করুন
+  const firstPatient = document.querySelector('.patient-card');
+  if (firstPatient) {
+    setActivePatient(firstPatient);
+  }
+  
+  // ✅ সিরিয়াল রেঞ্জ লোড
+  loadSerialRanges().then(() => {
+    console.log("✅ Initial serial ranges loaded");
+    updateTimeOptions();
+  });
+  
+  // সংশোধন: const কেটে গ্লোবাল ভ্যারিয়েবল সেট করা হলো
+cleanupListeners = setupRealtimeListener();
+  
+  // ✅ মোডালের বাইরে ক্লিক করলে বন্ধ
+  window.addEventListener('click', (event) => {
+    if (elements && event.target === elements.quickSerialModal) {
+      elements.quickSerialModal.style.display = 'none';
+      resetQuickSerialForm();
+      if (typeof gridSystem !== 'undefined' && gridSystem) {
+        gridSystem.cleanup();
+        gridSystem = null;
+      }
+    }
+  });
+  
+  // ✅ পেজ হাইড বা ক্লোজ হলে ফায়ারবেস কানেকশন ১০০% বন্ধ করার জন্য নতুন কোড
+window.addEventListener('pagehide', () => {
+  if (typeof cleanupListeners === 'function') {
+    cleanupListeners();
+    console.log("🛑 ড্যাশবোর্ড লিসেনার সফলভাবে বন্ধ হয়েছে");
+  }
+  if (typeof gridSystem !== 'undefined' && gridSystem && typeof gridSystem.cleanup === 'function') {
+    gridSystem.cleanup();
+    console.log("🧹 গ্রিড সিস্টেম ক্লিনআপ সম্পন্ন");
+  }
+});
+  
+  console.log('Initialization complete');
+});
+</script>
+</body>
+</html>
