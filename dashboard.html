@@ -3489,7 +3489,7 @@ function getActivePatientIndex() {
 }
 
     // =======================================================
-// তারিখ গণনা ফাংশন যোগ করুন (search.html থেকে)
+// তারিখ গণনা ফাংশন যোগ করুন
 // =======================================================
 function getNextDateByDay(targetDay) {
   const daysMap = {
@@ -3666,51 +3666,56 @@ async function addQuickSerial() {
     const elapsed = Date.now() - startTime;
     console.log(`✅ বুকিং সম্পন্ন: ${elapsed}ms`);
 
- // ==================== SMS Integration (Multi-Serial Supported) ====================
+// ==================== SMS Integration (Multi-Serial Supported) ====================
 try {
-  const patientName = appointmentData.name || "Patient";
-  const selectedPhone = appointmentData.phone;
-  const englishDateStr = appointmentData.date || ""; 
-  const appointmentTime = appointmentData.time || "07:00 PM"; 
+  // ১. ডাইনামিক লোকাল ভ্যারিয়েবল থেকে ডেটা সংগ্রহ (লুপের বাইরে সাধারণ ডেটা)
+  const selectedPhone = phone; // উপরের ফাংশনে থাকা আসল ফোন নম্বর
+  const appointmentTime = time || "07:00 PM"; // উপরে থাকা সিলেক্টেড টাইম
+  const englishDateStr = appointmentDateInfo ? appointmentDateInfo.dateString : ""; // জেনারেট হওয়া ইংরেজি তারিখ
 
   const apiKey = '74a82f2a949057f0e67fa4b672f75275';
   const sender = '8809617635159';
 
-  // 💡 Serial jodi ekadik thake (jemon: "5, 6, 7"), tobe shegulo alada kora
-  // Jodi ekti serial thake tobeo eta array hishebe kaj korbe
-  const serialString = String(appointmentData.serial);
-  const serialArray = serialString.split(',').map(s => s.trim());
+  // ২. ফোন নম্বর থাকলে এবং "ফোন ছাড়া বুকিং" চেক না করা থাকলেই কেবল এসএমএস যাবে
+  if (selectedPhone && !skipPhone) {
+    console.log(`🚀 Total serials to notify: ${allPatients.length}. Sending individual SMS...`);
 
-  console.log(`🚀 Total serials found: ${serialArray.length}. Sending individual SMS...`);
+    // অলরেডি ফর্ম ভ্যালিডেশন করা 'allPatients' এবং 'selectedSerials' অ্যারে থেকে লুপ চালানো
+    allPatients.forEach((patient, i) => {
+      const patientName = patient.name || "Patient";
+      const singleSerial = selectedSerials[i]; // ঠিক এই রোগীর জন্য বরাদ্দকৃত সিরিয়াল
 
-  // Each serial er jonno alada alada SMS pathanor loop
-  serialArray.forEach((singleSerial) => {
-    
-    // Protita serial er jonno alada unique message template
-    const smsMessage = `Dear ${patientName}, your Serial No: ${singleSerial}, Date: ${englishDateStr}, Please Present At: ${appointmentTime}. Thank you! For the next serial, visit: https://drmasum.netlify.app/`;
+      if (singleSerial) {
+        // প্রতিটি রোগীর জন্য আলাদা ডাইনামিক ইংরেজি মেসেজ টেমপ্লেট
+        const smsMessage = `Dear ${patientName}, your Serial No: ${singleSerial}, Date: ${englishDateStr}, Please Present At: ${appointmentTime}. Thank you! For the next serial, visit: https://drmasum.netlify.app/`;
 
-    const automasUrl = `https://api.automas.com.bd/smsapiv3?apikey=${apiKey}&sender=${sender}&msisdn=${selectedPhone}&smstext=${encodeURIComponent(smsMessage)}`;
+        const automasUrl = `https://api.automas.com.bd/smsapiv3?apikey=${apiKey}&sender=${sender}&msisdn=${selectedPhone}&smstext=${encodeURIComponent(smsMessage)}`;
 
-    // no-cors mode-e backend-e request pathano
-    fetch(automasUrl, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
+        // no-cors মোডে সাইলেন্ট ব্যাকগ্রাউন্ড রিকোয়েস্ট
+        fetch(automasUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          }
+        })
+        .then(() => {
+          console.log(`📥 SMS sent successfully for ${patientName} (Serial: ${singleSerial})`);
+        })
+        .catch(err => {
+          console.warn(`⚠️ SMS Network Error for Serial ${singleSerial}:`, err);
+        });
       }
-    })
-    .then(() => {
-      console.log(`📥 SMS sent successfully for Serial No: ${singleSerial}`);
-    })
-    .catch(err => {
-      console.warn(`⚠️ SMS Network Error for Serial ${singleSerial}:`, err);
     });
-  });
+  } else {
+    console.log("ℹ️ SMS skipped: No phone number provided or skip phone checked.");
+  }
 
 } catch (error) {
   console.error("❌ SMS Gateway Connection Error in Dashboard:", error);
 }
 // ===================================================================================
+
 
 
     
