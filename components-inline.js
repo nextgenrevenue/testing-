@@ -146,7 +146,7 @@
           width: 280px;
           background: linear-gradient(180deg, #ffffff, #f8fafc);
           border-right: 1px solid #e2e8f0;
-          height: calc(100vh - 64px);
+          height: calc(100dvh - 64px);
           position: sticky;
           top: 64px;
           overflow: hidden; /* পুরো সাইডবারের স্ক্রল বন্ধ */
@@ -530,7 +530,7 @@
             position: fixed;
             top: 56px;
             left: -100%;
-            height: calc(100vh - 56px);
+            height: calc(100dvh - 56px);
             box-shadow: 4px 0 30px rgba(0,0,0,0.15);
             width: 290px;
             border-radius: 0 16px 16px 0;
@@ -1133,6 +1133,106 @@ async loadNameFromFirebase(phone) {
       });
     }
   };
+
+// ==================== REALTIME SIDEBAR STATS ====================
+ComponentLoader.initGlobalSidebarStats = function() {
+  let userPhone = sessionStorage.getItem('userPhone') || sessionStorage.getItem('loggedInUser');
+  if (!userPhone) return;
+
+  const sideTotalEl = document.getElementById('sideTotal');
+  const sidePendingEl = document.getElementById('sidePending');
+  if (!sideTotalEl || !sidePendingEl) return;
+
+  if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+    const db = firebase.firestore();
+    
+    // ✅ archiveDb রেফারেন্স নেওয়া
+    let archiveDb = null;
+    try {
+      const archiveApp = firebase.apps.find(app => app.name === "archiveApp");
+      if (archiveApp) {
+        archiveDb = archiveApp.firestore();
+      }
+    } catch(e) {
+      console.warn('Archive DB not available:', e);
+    }
+
+    let totalCount = 0;
+    let pendingCount = 0;
+
+    // 🔥 উভয় DB থেকে ডাটা ট্র্যাক করার ফাংশন
+    function processSnapshot(querySnapshot, source) {
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        const appointmentPhone = data.phone ? data.phone.toString().trim() : '';
+        const adminPhone = data.adminPhone ? data.adminPhone.toString().trim() : '';
+        const statusText = data.status ? data.status.toString().trim().toLowerCase() : '';
+
+        if (appointmentPhone === userPhone || adminPhone === userPhone) {
+          totalCount++;
+          
+          // pending চেক
+          const isPending = statusText === 'pending' || statusText === 'পেন্ডিং';
+          const tokenGiven = data.tokenGiven === true || data.tokenStatus === 'given';
+          const isVisited = data.status === 'visited';
+          
+          // expired চেক
+          let isExpired = false;
+          const appointmentDate = data.appointmentDate || data.date;
+          if (appointmentDate) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const appDate = new Date(appointmentDate);
+            appDate.setHours(0, 0, 0, 0);
+            if (appDate < today) isExpired = true;
+          }
+
+          // ✅ pending কাউন্ট: pending স্ট্যাটাস, token দেওয়া হয়নি, visited নয়, expired নয়
+          if (isPending && !tokenGiven && !isVisited && !isExpired) {
+            pendingCount++;
+          }
+        }
+      });
+    }
+
+    // 🔥 primary DB লিসেনার
+    db.collection('appointments')
+      .onSnapshot((querySnapshot) => {
+        // রিসেট
+        totalCount = 0;
+        pendingCount = 0;
+        
+        // প্রাইমারি প্রসেস
+        processSnapshot(querySnapshot, 'primary');
+        
+        // আর্কাইভ প্রসেস (যদি থাকে)
+        if (archiveDb) {
+          archiveDb.collection('archived_appointments')
+            .get()
+            .then((archiveSnap) => {
+              processSnapshot(archiveSnap, 'archive');
+              updateUI(totalCount, pendingCount);
+            })
+            .catch((err) => {
+              console.warn('Archive fetch error:', err);
+              updateUI(totalCount, pendingCount);
+            });
+        } else {
+          updateUI(totalCount, pendingCount);
+        }
+      }, (error) => {
+        console.error("Sidebar stats error: ", error);
+      });
+  }
+};
+
+// UI আপডেট ফাংশন
+function updateUI(total, pending) {
+  const sideTotalEl = document.getElementById('sideTotal');
+  const sidePendingEl = document.getElementById('sidePending');
+  if (sideTotalEl) sideTotalEl.textContent = total;
+  if (sidePendingEl) sidePendingEl.textContent = pending;
+}
   
   // ==================== GLOBAL ====================
   window.ComponentLoader = ComponentLoader;

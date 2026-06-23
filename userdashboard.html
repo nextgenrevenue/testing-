@@ -421,7 +421,11 @@ document.addEventListener('DOMContentLoaded', function() {
       if (window.ComponentLoader.initProfile) {
         window.ComponentLoader.initProfile();
       }
-    }, 500);
+      
+      if (window.ComponentLoader.initGlobalSidebarStats) {
+        window.ComponentLoader.initGlobalSidebarStats();
+      }
+    }, 500); 
   } else {
     console.warn('⚠️ ComponentLoader পাওয়া যায়নি');
   }

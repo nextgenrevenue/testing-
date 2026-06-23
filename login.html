@@ -150,7 +150,7 @@
       color: #ff6f91;
     }
 
-    /* 📱 ফোন ইনপুট গ্রুপ - দুই বক্স স্টাইল */
+    /* 📱 ফোন ইনপুট গ্রুপ */
     .phone-input-group {
       display: flex;
       gap: 8px;
@@ -190,7 +190,7 @@
       box-shadow: 0 5px 15px rgba(122, 184, 212, 0.3);
     }
 
-    /* ⚠️ এরর মেসেজ স্টাইল */
+    /* ⚠️ এরর মেসেজ */
     .error-text {
       color: #dc2626;
       font-size: 13px;
@@ -200,7 +200,7 @@
       width: 100%;
     }
 
-    /* 🔥 OTP সেকশন স্টাইল */
+    /* 🔥 OTP সেকশন */
     #otpSection {
       border-top: 2px dashed #e2e8f0;
       margin-top: 20px;
@@ -228,10 +228,11 @@
       background-color: #15803d;
     }
 
+    /* ===== ফেইড ইন অ্যানিমেশন ===== */
     @keyframes fadeInUp {
       from {
         opacity: 0;
-        transform: translateY(12px);
+        transform: translateY(15px);
       }
       to {
         opacity: 1;
@@ -239,631 +240,682 @@
       }
     }
 
-    #loginOtpGroup, #regOtpGroup, #forgetOtpGroup, #newPasswordGroup {
-      animation: fadeInUp 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    #forgetOtpGroup, #newPasswordGroup {
+      animation: fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
+    /* ===== টোস্ট ===== */
+    .toast-container {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      max-width: 90%;
+      pointer-events: none;
+    }
+
+    .toast {
+      padding: 14px 28px;
+      border-radius: 12px;
+      color: #fff;
+      font-weight: 600;
+      font-size: 14px;
+      text-align: center;
+      pointer-events: auto;
+      animation: toastSlideUp 0.4s ease forwards;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      min-width: 200px;
+      max-width: 100%;
+    }
+
+    .toast.hide {
+      animation: toastSlideDown 0.3s ease forwards;
+    }
+
+    @keyframes toastSlideUp {
+      from { opacity: 0; transform: translateY(20px) scale(0.95); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes toastSlideDown {
+      from { opacity: 1; transform: translateY(0) scale(1); }
+      to { opacity: 0; transform: translateY(20px) scale(0.95); }
+    }
+
+    .toast-success { background: #16a34a; }
+    .toast-error { background: #dc2626; }
+    .toast-warning { background: #f59e0b; }
+
+    /* ===== স্পিনার ===== */
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,0.2);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
   </style>
 </head>
 <body>
 
-  <div class="login-container">
+<!-- ===== টোস্ট ===== -->
+<div class="toast-container" id="toastContainer"></div>
+
+<div class="login-container">
+  
+  <!-- ===== লগইন বক্স ===== -->
+  <div id="loginBox">
+    <h2>স্বাগতম</h2>
+    <p class="subtitle">আপনার অ্যাকাউন্ট এ লগইন করুন</p>
     
-    <div id="loginBox">
-      <h2>স্বাগতম</h2>
-      <p class="subtitle">আপনার অ্যাকাউন্ট এ লগইন করুন</p>
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="username">মোবাইল নম্বর</label>
+        <div class="phone-input-group">
+          <span class="country-code">+৮৮০</span>
+          <input type="text" id="username" class="phone-number" required placeholder="১৭XXXXXXXX">
+        </div>
+      </div>
       
-      <form id="loginForm">
-        <div class="form-group">
-          <label for="username">মোবাইল নম্বর</label>
-          <div class="phone-input-group">
-            <span class="country-code">+৮৮০</span>
-            <input type="text" id="username" class="phone-number" required placeholder="১৭XXXXXXXX">
-          </div>
-        </div>
-        
-        <div class="form-group" id="loginPasswordGroup">
-          <label for="password">পাসওয়ার্ড</label>
-          <input type="password" id="password" placeholder="••••••••">
-        </div>
-
-        <div class="form-group" id="loginOtpGroup" style="display: none;">
-          <label for="loginOtp">ওটিপি (OTP) কোড</label>
-          <input type="text" id="loginOtp" autocomplete="one-time-code" inputmode="numeric" placeholder="৬ ডিজিটের কোড দিন">
-        </div>
-        
-        <div id="recaptcha-container-login"></div>
-        
-        <button type="submit" id="mainLoginBtn" class="login-btn">লগইন করুন</button>
-        
-        <button type="button" id="toggleLoginMethodBtn" class="login-btn" style="background: #e2eff5; color: #448cb0; box-shadow: none; margin-top: 10px;">
-          OTP দিয়ে লগইন করুন
-        </button>
-      </form>
+      <div class="form-group">
+        <label for="password">পাসওয়ার্ড</label>
+        <input type="password" id="password" placeholder="••••••••">
+      </div>
       
-      <p class="switch-text" style="margin-top: 15px;">
-        <a href="#" id="forgetPasswordLink" style="color: #ef4444; font-size: 13px;">পাসওয়ার্ড ভুলে গেছেন?</a>
-      </p>
-      <p class="switch-text">নতুন ইউজার? <a href="#" id="showRegisterLink">নতুন অ্যাকাউন্ট তৈরি করুন</a></p>
-    </div>
-
-    <div id="registerBox" style="display: none;">
-      <h2>নতুন অ্যাকাউন্ট</h2>
-      <p class="subtitle">সহজ সিরিয়ালের জন্য আপনার তথ্য দিন</p>
-      
-      <form id="registerForm">
-        <div class="form-group">
-          <label for="regName">সম্পূর্ণ নাম</label>
-          <input type="text" id="regName" required placeholder="নাম"
-                 pattern="[a-zA-Z\u0980-\u09FF\.\s]{3,50}"
-                 title="শুধুমাত্র বাংলা/ইংরেজি অক্ষর, ডট (.) ও স্পেস ব্যবহার করুন (3-50 অক্ষর)">
-          <small id="regNameError" class="error-text">সঠিক নাম লিখুন (বিশেষ চিহ্ন বা সংখ্যা দেওয়া যাবে না)</small>
-        </div>
-        
-        <div class="form-group">
-          <label for="regPhone">মোবাইল নম্বর</label>
-          <div class="phone-input-group">
-            <span class="country-code">+৮৮০</span>
-            <input type="tel" id="regPhone" class="phone-number" required placeholder="১৭XXXXXXXX"
-                   pattern="01[3-9][0-9]{8}">
-          </div>
-        </div>
-        
-        <div class="form-row">
-          <div class="form-group">
-            <label for="regAge">বয়স</label>
-            <input type="number" id="regAge" required placeholder="বয়স" min="1" max="120">
-          </div>
-          <div class="form-group">
-            <label for="regGender">লিঙ্গ</label>
-            <select id="regGender" required>
-              <option value="Male">পুরুষ</option>
-              <option value="Female">মহিলা</option>
-              <option value="Other">অন্যান্য</option>
-            </select>
-          </div>
-        </div>
-        
-        <div class="form-group">
-          <label for="regPassword">একটি পাসওয়ার্ড সেট করুন</label>
-          <input type="password" id="regPassword" required minlength="6" placeholder="কমপক্ষে ৬ ডিজিটের পাসওয়ার্ড">
-        </div>
-
-        <div id="recaptcha-container-reg"></div>
-        
-        <button type="submit" id="regSubmitBtn" class="login-btn">অ্যাকাউন্ট তৈরি করুন</button>
-
-        <div id="otpSection">
-          <div class="form-group">
-            <label for="verificationCode">মোবাইলে পাঠানো ওটিপি (OTP) কোড দিন</label>
-            <input type="text" id="verificationCode" placeholder="XXXXXX" maxlength="6">
-          </div>
-          <button type="button" id="verifyOtpBtn" class="login-btn">কোড ভেরিফাই ও রেজিস্ট্রেশন সম্পন্ন করুন</button>
-        </div>
-      </form>
-      
-      <p class="switch-text">অলরেডি অ্যাকাউন্ট আছে? <a href="#" id="showLoginLink">লগইন করুন</a></p>
-    </div>
-
-    <div id="forgetBox" style="display: none;">
-      <h2>পাসওয়ার্ড রিসেট</h2>
-      <p class="subtitle">ওটিপি ভেরিফাই করে নতুন পাসওয়ার্ড সেট করুন</p>
-      
-      <form id="forgetForm">
-        <div class="form-group">
-          <label for="forgetPhone">আপনার মোবাইল নম্বর</label>
-          <div class="phone-input-group">
-            <span class="country-code">+৮৮০</span>
-            <input type="text" id="forgetPhone" class="phone-number" required placeholder="১৭XXXXXXXX">
-          </div>
-        </div>
-
-        <div class="form-group" id="forgetOtpGroup" style="display: none;">
-          <label for="forgetOtp">ফোনে আসা ওটিপি কোড</label>
-          <input type="text" id="forgetOtp" autocomplete="one-time-code" inputmode="numeric" placeholder="XXXXXX">
-        </div>
-
-        <div class="form-group" id="newPasswordGroup" style="display: none;">
-          <label for="newPassword">নতুন পাসওয়ার্ড দিন</label>
-          <input type="password" id="newPassword" minlength="6" placeholder="কমপক্ষে ৬ ডিজিটের নতুন পাসওয়ার্ড">
-        </div>
-
-        <div id="recaptcha-container-forget"></div>
-
-        <button type="button" id="sendForgetOtpBtn" class="login-btn" style="background: #3a86c8;">OTP পাঠান</button>
-        <button type="submit" id="mainForgetBtn" class="login-btn" style="display: none;">পাসওয়ার্ড পরিবর্তন করুন</button>
-      </form>
-      
-      <p class="switch-text"><a href="#" id="backToLoginLink">লগইন পেজে ফিরে যান</a></p>
-    </div>
-
+      <button type="submit" id="mainLoginBtn" class="login-btn">লগইন করুন</button>
+    </form>
+    
+    <p class="switch-text" style="margin-top: 15px;">
+      <a href="#" id="forgetPasswordLink" style="color: #ef4444; font-size: 13px;">পাসওয়ার্ড ভুলে গেছেন?</a>
+    </p>
+    <p class="switch-text">নতুন ইউজার? <a href="#" id="showRegisterLink">নতুন অ্যাকাউন্ট তৈরি করুন</a></p>
   </div>
 
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <!-- ===== রেজিস্ট্রেশন বক্স ===== -->
+  <div id="registerBox" style="display: none;">
+    <h2>নতুন অ্যাকাউন্ট</h2>
+    <p class="subtitle">সহজ সিরিয়ালের জন্য আপনার তথ্য দিন</p>
+    
+    <form id="registerForm">
+      <div class="form-group">
+        <label for="regName">সম্পূর্ণ নাম</label>
+        <input type="text" id="regName" required placeholder="নাম"
+               pattern="[a-zA-Z\u0980-\u09FF\.\s]{3,50}"
+               title="শুধুমাত্র বাংলা/ইংরেজি অক্ষর, ডট (.) ও স্পেস ব্যবহার করুন (3-50 অক্ষর)">
+        <small id="regNameError" class="error-text">সঠিক নাম লিখুন (বিশেষ চিহ্ন বা সংখ্যা দেওয়া যাবে না)</small>
+      </div>
+      
+      <div class="form-group">
+        <label for="regPhone">মোবাইল নম্বর</label>
+        <div class="phone-input-group">
+          <span class="country-code">+৮৮০</span>
+          <input type="tel" id="regPhone" class="phone-number" required placeholder="১৭XXXXXXXX"
+                 pattern="01[3-9][0-9]{8}">
+        </div>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label for="regAge">বয়স</label>
+          <input type="number" id="regAge" required placeholder="বয়স" min="1" max="120">
+        </div>
+        <div class="form-group">
+          <label for="regGender">লিঙ্গ</label>
+          <select id="regGender" required>
+            <option value="Male">পুরুষ</option>
+            <option value="Female">মহিলা</option>
+            <option value="Other">অন্যান্য</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="regPassword">একটি পাসওয়ার্ড সেট করুন</label>
+        <input type="password" id="regPassword" required minlength="6" placeholder="কমপক্ষে ৬ ডিজিটের পাসওয়ার্ড">
+      </div>
+      
+      <button type="submit" id="regSubmitBtn" class="login-btn">অ্যাকাউন্ট তৈরি করুন</button>
 
-  <script>
-    // ফায়ারবেস কনফিগারেশন 
-    const firebaseConfig = {
-      apiKey: "AIzaSyCUGkcHFSYVmA0KUSRHhY-ZFFAS6jpJe4M",
-      authDomain: "doctor-appointment-syste-23828.firebaseapp.com",
-      projectId: "doctor-appointment-syste-23828",
-      storageBucket: "doctor-appointment-syste-23828.appspot.com",
-      messagingSenderId: "79600391014",
-      appId: "1:79600391014:web:9688db8bb62f431ae16ea7"
-    };
+      <div id="otpSection">
+        <div class="form-group">
+          <label for="verificationCode">মোবাইলে পাঠানো ওটিপি (OTP) কোড দিন</label>
+          <input type="text" id="verificationCode" placeholder="XXXXXX" maxlength="6">
+        </div>
+        <button type="button" id="verifyOtpBtn" class="login-btn">কোড ভেরিফাই ও রেজিস্ট্রেশন সম্পন্ন করুন</button>
+      </div>
+    </form>
+    
+    <p class="switch-text">অলরেডি অ্যাকাউন্ট আছে? <a href="#" id="showLoginLink">লগইন করুন</a></p>
+  </div>
 
-    // ফায়ারবেস ইনিশিয়ালিলাইজ
-    if (!firebase.apps.length) {
-      firebase.initializeApp(firebaseConfig);
-    }
-    const db = firebase.firestore();
-    const auth = firebase.auth();
+  <!-- ===== ফরগেট পাসওয়ার্ড বক্স ===== -->
+  <div id="forgetBox" style="display: none;">
+    <h2>পাসওয়ার্ড রিসেট</h2>
+    <p class="subtitle">OTP দিয়ে নতুন পাসওয়ার্ড সেট করুন</p>
+    
+    <form id="forgetForm">
+      <div class="form-group">
+        <label for="forgetPhone">আপনার মোবাইল নম্বর</label>
+        <div class="phone-input-group">
+          <span class="country-code">+৮৮০</span>
+          <input type="text" id="forgetPhone" class="phone-number" required placeholder="১৭XXXXXXXX">
+        </div>
+      </div>
 
-    let confirmationResultGlobal = null;
-    let isOtpLoginMode = false;
-    let confirmationResultReg = null;
+      <div class="form-group" id="forgetOtpGroup" style="display: none;">
+        <label for="forgetOtp">ফোনে আসা ওটিপি কোড</label>
+        <input type="text" id="forgetOtp" autocomplete="one-time-code" inputmode="numeric" placeholder="XXXXXX">
+      </div>
 
-    // ==================== ফর্ম টগল লজিক ====================
-    document.getElementById('showRegisterLink').addEventListener('click', function(e) {
-      e.preventDefault();
-      switchBox('registerBox');
-      document.getElementById('regName').focus();
+      <div class="form-group" id="newPasswordGroup" style="display: none;">
+        <label for="newPassword">নতুন পাসওয়ার্ড দিন</label>
+        <input type="password" id="newPassword" minlength="6" placeholder="কমপক্ষে ৬ ডিজিটের নতুন পাসওয়ার্ড">
+      </div>
+
+      <button type="button" id="sendForgetOtpBtn" class="login-btn" style="background: #3a86c8;">OTP পাঠান</button>
+      <button type="submit" id="mainForgetBtn" class="login-btn" style="display: none;">পাসওয়ার্ড পরিবর্তন করুন</button>
+    </form>
+    
+    <p class="switch-text"><a href="#" id="backToLoginLink">লগইন পেজে ফিরে যান</a></p>
+  </div>
+
+</div>
+
+<!-- ===== Firebase (শুধু Firestore) ===== -->
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+
+<script>
+// ============================================================
+// FIREBASE কনফিগ (শুধু Firestore)
+// ============================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyCUGkcHFSYVmA0KUSRHhY-ZFFAS6jpJe4M",
+  authDomain: "doctor-appointment-syste-23828.firebaseapp.com",
+  projectId: "doctor-appointment-syste-23828",
+  storageBucket: "doctor-appointment-syste-23828.appspot.com",
+  messagingSenderId: "79600391014",
+  appId: "1:79600391014:web:9688db8bb62f431ae16ea7"
+};
+
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+const db = firebase.firestore();
+
+// ============================================================
+// SMS Gateway (CORS-Free - automas.com.bd)
+// ============================================================
+const SMS_CONFIG = {
+  apiKey: '74a82f2a949057f0e67fa4b672f75275',
+  sender: '8809617635159',
+  apiUrl: 'https://api.automas.com.bd/smsapiv3'
+};
+
+// ============================================================
+// 📱 SMS পাঠান (no-cors)
+// ============================================================
+async function sendSMS(phone, message) {
+  try {
+    const url = `${SMS_CONFIG.apiUrl}?apikey=${SMS_CONFIG.apiKey}&sender=${SMS_CONFIG.sender}&msisdn=${phone}&smstext=${encodeURIComponent(message)}`;
+    
+    await fetch(url, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
+    
+    return { success: true };
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+}
 
-    document.getElementById('showLoginLink').addEventListener('click', function(e) {
-      e.preventDefault();
-      switchBox('loginBox');
-      document.getElementById('username').focus();
-    });
+// ============================================================
+// 🔔 টোস্ট
+// ============================================================
+function showToast(message, type = 'success', duration = 4000) {
+  const container = document.getElementById('toastContainer');
+  
+  const oldToasts = container.querySelectorAll('.toast');
+  oldToasts.forEach(t => {
+    t.classList.add('hide');
+    setTimeout(() => t.remove(), 400);
+  });
+  
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.textContent = message;
+  container.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.classList.add('hide');
+    setTimeout(() => toast.remove(), 400);
+  }, duration);
+}
 
-    document.getElementById('forgetPasswordLink').addEventListener('click', function(e) {
-      e.preventDefault();
-      switchBox('forgetBox');
-      document.getElementById('forgetPhone').focus();
-    });
+// ============================================================
+// 📞 ফোন ক্লিন
+// ============================================================
+function cleanAndFormatPhone(phoneRaw) {
+  let input = phoneRaw.trim();
+  
+  const banglaDigits = {'০':'0','১':'1','২':'2','৩':'3','৪':'4','৫':'5','৬':'6','৭':'7','৮':'8','৯':'9'};
+  let converted = input.replace(/[০-৯]/g, function(w) { return banglaDigits[w]; });
+  converted = converted.replace(/\D/g, '');
+  
+  if (converted.startsWith('880')) converted = converted.substring(3);
+  if (converted.length === 10) converted = '0' + converted;
+  
+  if (!/^01[3-9]\d{8}$/.test(converted)) return null;
+  return converted;
+}
 
-    document.getElementById('backToLoginLink').addEventListener('click', function(e) {
-      e.preventDefault();
-      switchBox('loginBox');
-    });
+// ============================================================
+// 🔢 OTP
+// ============================================================
+const otpStore = {};
 
-    function switchBox(boxId) {
-      document.getElementById('loginBox').style.display = boxId === 'loginBox' ? 'block' : 'none';
-      document.getElementById('registerBox').style.display = boxId === 'registerBox' ? 'block' : 'none';
-      document.getElementById('forgetBox').style.display = boxId === 'forgetBox' ? 'block' : 'none';
-    }
+function generateOTP() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
 
-    document.getElementById('toggleLoginMethodBtn').addEventListener('click', function() {
-      isOtpLoginMode = !isOtpLoginMode;
-      confirmationResultGlobal = null;
-      document.getElementById('loginOtp').value = "";
-      if (isOtpLoginMode) {
-        document.getElementById('loginPasswordGroup').style.display = 'none';
-        document.getElementById('loginOtpGroup').style.display = 'block';
-        document.getElementById('mainLoginBtn').innerHTML = 'OTP পাঠান';
-        this.innerHTML = 'পাসওয়ার্ড দিয়ে লগইন করুন';
+function storeOTP(phone, otp, type) {
+  otpStore[phone] = { otp, type, expires: Date.now() + 300000 };
+}
+
+function verifyOTP(phone, otp) {
+  const stored = otpStore[phone];
+  if (!stored) return { success: false, message: 'কোনো OTP পাওয়া যায়নি' };
+  if (Date.now() > stored.expires) {
+    delete otpStore[phone];
+    return { success: false, message: 'OTP এর মেয়াদ শেষ হয়েছে' };
+  }
+  if (stored.otp === otp) {
+    delete otpStore[phone];
+    return { success: true, message: 'OTP ভেরিফাইড' };
+  }
+  return { success: false, message: 'ভুল OTP কোড' };
+}
+
+// ============================================================
+// 📨 OTP পাঠান
+// ============================================================
+async function sendOTP(phone, type) {
+  const otp = generateOTP();
+  storeOTP(phone, otp, type);
+  console.log(`📱 OTP for ${phone}: ${otp}`);
+  
+  const messages = {
+    'register': `আপনার অ্যাকাউন্ট ভেরিফিকেশন OTP: ${otp}. এটি ৫ মিনিট পর্যন্ত বৈধ।`,
+    'forget': `আপনার পাসওয়ার্ড রিসেট OTP: ${otp}. এটি ৫ মিনিট পর্যন্ত বৈধ।`
+  };
+  
+  const result = await sendSMS(phone, messages[type]);
+  if (result.success) {
+    showToast(`✅ OTP পাঠানো হয়েছে!`, 'success');
+    return { success: true, otp };
+  } else {
+    showToast(`❌ OTP পাঠাতে ব্যর্থ`, 'error');
+    return { success: false };
+  }
+}
+
+// ============================================================
+// 📦 বক্স টগল
+// ============================================================
+function switchBox(boxId) {
+  document.getElementById('loginBox').style.display = boxId === 'loginBox' ? 'block' : 'none';
+  document.getElementById('registerBox').style.display = boxId === 'registerBox' ? 'block' : 'none';
+  document.getElementById('forgetBox').style.display = boxId === 'forgetBox' ? 'block' : 'none';
+}
+
+// ============================================================
+// 🔐 লগইন (শুধু পাসওয়ার্ড)
+// ============================================================
+document.getElementById('loginForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const phoneInput = cleanAndFormatPhone(document.getElementById('username').value);
+  const passwordInput = document.getElementById('password').value;
+  const loginButton = document.getElementById('mainLoginBtn');
+  const originalText = loginButton.innerHTML;
+
+  if (!phoneInput) {
+    showToast('সঠিক মোবাইল নম্বর দিন!', 'error');
+    return;
+  }
+
+  if (!passwordInput) {
+    showToast('পাসওয়ার্ড দিন!', 'error');
+    return;
+  }
+
+  loginButton.innerHTML = '<span class="spinner"></span> লগইন হচ্ছে...';
+  loginButton.disabled = true;
+
+  db.collection('users').doc(phoneInput).get().then((doc) => {
+    if (doc.exists) {
+      const userData = doc.data();
+      if (userData.password === passwordInput) {
+        fetchUserDataAndRedirect(phoneInput, loginButton, originalText);
       } else {
-        document.getElementById('loginPasswordGroup').style.display = 'block';
-        document.getElementById('loginOtpGroup').style.display = 'none';
-        document.getElementById('mainLoginBtn').innerHTML = 'লগইন করুন';
-        this.innerHTML = 'OTP দিয়ে লগইন করুন';
+        showToast('ভুল পাসওয়ার্ড!', 'error');
+        resetButton(loginButton, originalText);
       }
-    });
+    } else {
+      showToast('এই নম্বরে কোনো অ্যাকাউন্ট নেই!', 'error');
+      resetButton(loginButton, originalText);
+    }
+  }).catch(err => {
+    showToast('ডাটাবেজ কানেকশনে সমস্যা!', 'error');
+    resetButton(loginButton, originalText);
+  });
+});
 
-    // ==================== ফায়ারবেস reCAPTCHA ====================
-    auth.useDeviceLanguage();
-    window.recaptchaVerifierReg = new firebase.auth.RecaptchaVerifier('recaptcha-container-reg', { 'size': 'invisible' });
-    window.recaptchaVerifierLogin = new firebase.auth.RecaptchaVerifier('recaptcha-container-login', { 'size': 'invisible' });
-    window.recaptchaVerifierForget = new firebase.auth.RecaptchaVerifier('recaptcha-container-forget', { 'size': 'invisible' });
+// ============================================================
+// 📝 রেজিস্ট্রেশন (OTP দিয়ে)
+// ============================================================
+let regPhone = null;
+let regData = null;
 
-    // ==================== নাম ভ্যালিডেশন (appointment.html এর মতো) ====================
-    const regNameInput = document.getElementById('regName');
-    const regNameError = document.getElementById('regNameError');
+document.getElementById('registerForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  
+  const name = document.getElementById('regName').value.trim();
+  const phoneInput = cleanAndFormatPhone(document.getElementById('regPhone').value);
+  const password = document.getElementById('regPassword').value;
+  const regButton = document.getElementById('regSubmitBtn');
+  const originalText = regButton.innerHTML;
 
-    if (regNameInput && regNameError) {
-      regNameInput.addEventListener('input', function() {
-        const val = this.value.trim();
-        const lowerVal = val.toLowerCase();
-        
-        const baseValid = /^[\p{L}\p{M}\. ]{3,50}$/u.test(val);
-        const hasVowelOrCar = /[aeiouAEIOU\u0985-\u0994\u09BE-\u09CC]/.test(val);
-        const hasConsecutiveConsonants = /[bcdfghjklmnpqrstvwxyz]{4,}/.test(lowerVal);
-        const hasRepeatedChars = /(.)\1\1/.test(lowerVal);
+  if (!document.getElementById('regName').checkValidity()) {
+    document.getElementById('regNameError').style.display = 'block';
+    return;
+  }
+  document.getElementById('regNameError').style.display = 'none';
 
-        if (!baseValid || !hasVowelOrCar || hasConsecutiveConsonants || hasRepeatedChars) {
-          regNameError.style.display = 'block';
-          regNameInput.setCustomValidity('invalid');
+  if (!phoneInput) {
+    showToast('সঠিক মোবাইল নম্বর দিন!', 'error');
+    return;
+  }
+
+  if (password.length < 6) {
+    showToast('পাসওয়ার্ড কমপক্ষে ৬ ডিজিটের হতে হবে!', 'error');
+    return;
+  }
+
+  if (!name) {
+    showToast('আপনার নাম লিখুন!', 'error');
+    return;
+  }
+
+  regButton.innerHTML = '<span class="spinner"></span> চেক করা হচ্ছে...';
+  regButton.disabled = true;
+
+  db.collection('users').doc(phoneInput).get().then((doc) => {
+    if (doc.exists) {
+      showToast('এই নম্বরে ইতিমধ্যে অ্যাকাউন্ট আছে!', 'error');
+      resetButton(regButton, originalText);
+    } else {
+      regButton.innerHTML = 'ওটিপি পাঠানো হচ্ছে...';
+      
+      sendOTP(phoneInput, 'register').then((result) => {
+        if (result.success) {
+          regPhone = phoneInput;
+          regData = { name, phone: phoneInput, password };
+          document.getElementById('otpSection').style.display = 'block';
+          regButton.style.display = 'none';
+          document.getElementById('verificationCode').focus();
+          showToast('ওটিপি পাঠানো হয়েছে!', 'success');
         } else {
-          regNameError.style.display = 'none';
-          regNameInput.setCustomValidity('');
-        }
-      });
-    }
-
-    // 🔢 বাংলা + ইংরেজি ডিজিট সাপোর্ট, ১১ ডিজিটে কনভার্ট
-    function cleanAndFormatPhone(phoneRaw) {
-      let input = phoneRaw.trim();
-      
-      // বাংলা ডিজিট → ইংরেজি ডিজিট
-      const banglaDigits = {'০':'0','১':'1','২':'2','৩':'3','৪':'4','৫':'5','৬':'6','৭':'7','৮':'8','৯':'9'};
-      let converted = input.replace(/[০-৯]/g, function(w) { return banglaDigits[w]; });
-      
-      // শুধু ডিজিট রাখুন (স্পেস, ড্যাশ, ব্র্যাকেট বাদ)
-      converted = converted.replace(/\D/g, '');
-      
-      // +880 বা 880 বাদ দিন (যদি থাকে)
-      if (converted.startsWith('880')) {
-        converted = converted.substring(3);
-      }
-      
-      // 10 ডিজিট হলে 0 যোগ করে 11 করুন
-      if (converted.length === 10) {
-        converted = '0' + converted;
-      }
-      
-      // ✅ বাংলাদেশী ফোন নম্বর ভ্যালিডেশন (01[3-9] দিয়ে শুরু)
-      const bdPhoneRegex = /^01[3-9]\d{8}$/;
-      if (!bdPhoneRegex.test(converted)) {
-        return null; // অকার্যকর ফোন নম্বর
-      }
-      
-      return converted; // 017XXXXXXXX (11 ডিজিট)
-    }
-
-    function initAutoOtpReader(inputId) {
-      if ('OTPCredential' in window) {
-        const ac = new AbortController();
-        navigator.credentials.get({
-          otp: { transport: ['sms'] },
-          signal: ac.signal
-        }).then(otp => {
-          document.getElementById(inputId).value = otp.code;
-        }).catch(err => { console.log("Auto OTP error:", err); });
-      }
-    }
-
-    // ==================== ফায়ারবেস লগইন লজিক ====================
-    document.getElementById('loginForm').addEventListener('submit', function(e) {
-      e.preventDefault();
-      const phoneInput = cleanAndFormatPhone(document.getElementById('username').value);
-      const loginButton = document.getElementById('mainLoginBtn');
-      const originalText = loginButton.innerHTML;
-
-      if (!phoneInput) {
-        alert("অনুগ্রহ করে সঠিক বাংলাদেশি মোবাইল নম্বর দিন (যেমন: 017XXXXXXXX)!");
-        return;
-      }
-
-      if (isOtpLoginMode) {
-        const otpCode = document.getElementById('loginOtp').value.trim();
-
-        if (!confirmationResultGlobal) {
-          loginButton.innerHTML = 'OTP পাঠানো হচ্ছে...';
-          loginButton.disabled = true;
-
-          db.collection('users').doc(phoneInput).get().then((doc) => {
-            if (!doc.exists) {
-              alert('এই মোবাইল নম্বরে কোনো অ্যাকাউন্ট পাওয়া যায়নি!');
-              resetButton(loginButton, originalText);
-              return;
-            }
-            
-            auth.signInWithPhoneNumber("+88" + phoneInput, window.recaptchaVerifierLogin)
-              .then((confirmationResult) => {
-                confirmationResultGlobal = confirmationResult;
-                loginButton.innerHTML = 'ভেরিফাই ও লগইন করুন';
-                loginButton.disabled = false;
-                alert('আপনার মোবাইলে ৬ ডিজিটের ওটিপি পাঠানো হয়েছে।');
-                initAutoOtpReader('loginOtp');
-              }).catch(err => {
-                alert('ওটিপি পাঠাতে ব্যর্থ: ' + err.message);
-                resetButton(loginButton, originalText);
-              });
-          });
-        } else {
-          if (otpCode.length !== 6) { alert('সঠিক ৬ ডিজিটের ওটিপি দিন!'); return; }
-          loginButton.innerHTML = 'যাচাই করা হচ্ছে...';
-          loginButton.disabled = true;
-
-          confirmationResultGlobal.confirm(otpCode).then(() => {
-            fetchUserDataAndRedirect(phoneInput, loginButton, originalText);
-          }).catch(err => {
-            alert('ভুল ওটিপি কোড! আবার চেষ্টা করুন।');
-            loginButton.innerHTML = 'ভেরিফাই ও লগইন করুন';
-            loginButton.disabled = false;
-          });
-        }
-      } else {
-        const passwordInput = document.getElementById('password').value;
-        loginButton.innerHTML = 'লগইন হচ্ছে...';
-        loginButton.disabled = true;
-
-        db.collection('users').doc(phoneInput).get().then((doc) => {
-          if (doc.exists) {
-            const userData = doc.data();
-            if (userData.password === passwordInput) {
-              fetchUserDataAndRedirect(phoneInput, loginButton, originalText);
-            } else {
-              alert('ভুল পাসওয়ার্ড! আবার চেষ্টা করুন।');
-              resetButton(loginButton, originalText);
-            }
-          } else {
-            alert('এই মোবাইল নম্বরে কোনো অ্যাকাউন্ট পাওয়া যায়নি!');
-            resetButton(loginButton, originalText);
-          }
-        }).catch(err => {
-          alert('ডাটাবেজ কানেকশনে সমস্যা হয়েছে!');
-          resetButton(loginButton, originalText);
-        });
-      }
-    });
-
-    // ==================== ফায়ারবেস রেজিস্ট্রেশন লজিক (OTP সহ) ====================
-    document.getElementById('registerForm').addEventListener('submit', function(e) {
-      e.preventDefault();
-      
-      const name = regNameInput.value.trim();
-      const phoneRaw = document.getElementById('regPhone').value.trim();
-      const phoneInput = cleanAndFormatPhone(phoneRaw);
-      const password = document.getElementById('regPassword').value;
-      const regButton = document.getElementById('regSubmitBtn');
-      
-      const originalText = regButton.innerHTML;
-
-      // ✅ HTML5 pattern চেক (login.html থেকে নেওয়া)
-      if (!regNameInput.checkValidity()) {
-        alert("অনুগ্রহ করে সঠিক নাম লিখুন (৩-৫০ অক্ষর, শুধু অক্ষর, ডট ও স্পেস)!");
-        regNameInput.focus();
-        return;
-      }
-
-      // ✅ ফোন নম্বর ভ্যালিডেশন
-      if (!phoneInput) {
-        alert("অনুগ্রহ করে সঠিক বাংলাদেশি মোবাইল নম্বর দিন (যেমন: 017XXXXXXXX)!");
-        document.getElementById('regPhone').focus();
-        return;
-      }
-
-      if (password.length < 6) {
-        alert("নিরাপত্তার জন্য পাসওয়ার্ড কমপক্ষে ৬ ডিজিটের হতে হবে!");
-        document.getElementById('regPassword').focus();
-        return;
-      }
-
-      // ✅ নাম খালি চেক
-      if (!name) {
-        alert("অনুগ্রহ করে আপনার নাম লিখুন!");
-        regNameInput.focus();
-        return;
-      }
-
-      // ২. নম্বরটি অলরেডি রেজিস্টার্ড কিনা চেক করা
-      regButton.innerHTML = 'চেক করা হচ্ছে...';
-      regButton.disabled = true;
-
-      db.collection('users').doc(phoneInput).get().then((doc) => {
-        if (doc.exists) {
-          alert("এই মোবাইল নম্বরে ইতিমধ্যে অ্যাকাউন্ট আছে! লগইন করার চেষ্টা করুন।");
+          showToast('ওটিপি পাঠাতে সমস্যা!', 'error');
           resetButton(regButton, originalText);
-        } else {
-          // ৩. ওটিপি পাঠানো শুরু
-          regButton.innerHTML = 'ওটিপি পাঠানো হচ্ছে...';
-          
-          const phoneNumberWithCode = "+88" + phoneInput;
-
-          auth.signInWithPhoneNumber(phoneNumberWithCode, window.recaptchaVerifierReg)
-            .then((confirmationResult) => {
-              alert("আপনার মোবাইলে একটি ৬ ডিজিটের ওটিপি কোড পাঠানো হয়েছে।");
-              confirmationResultReg = confirmationResult;
-              
-              // ওটিপি সেকশন শো করা
-              document.getElementById('otpSection').style.display = 'block';
-              regButton.style.display = 'none';
-              document.getElementById('verificationCode').focus();
-            })
-            .catch((error) => {
-              console.error("SMS Sending Error:", error);
-              alert("ওটিপি পাঠাতে সমস্যা হয়েছে! আবার চেষ্টা করুন।");
-              resetButton(regButton, 'অ্যাকাউন্ট তৈরি করুন');
-            });
         }
-      }).catch((err) => {
-        console.error("Database check error:", err);
-        alert("ডাটাবেজ সার্ভার চেক করতে সমস্যা হয়েছে!");
-        resetButton(regButton, 'অ্যাকাউন্ট তৈরি করুন');
-      });
-    });
-
-    // ==================== ওটিপি কোড ভেরিফিকেশন ও ডাটা সেভ ====================
-    document.getElementById('verifyOtpBtn').addEventListener('click', function() {
-      const code = document.getElementById('verificationCode').value.trim();
-      const verifyBtn = document.getElementById('verifyOtpBtn');
-      
-      if (code.length !== 6) {
-        alert("অনুগ্রহ করে ৬ ডিজিটের ওটিপি কোডটি দিন।");
-        return;
-      }
-
-      verifyBtn.innerHTML = 'ভেরিফাই হচ্ছে...';
-      verifyBtn.disabled = true;
-
-      confirmationResultReg.confirm(code)
-        .then((result) => {
-          const name = regNameInput.value.trim();
-          const phoneRaw = document.getElementById('regPhone').value.trim();
-          const phoneInput = cleanAndFormatPhone(phoneRaw);
-          const age = document.getElementById('regAge').value;
-          const gender = document.getElementById('regGender').value;
-          const password = document.getElementById('regPassword').value;
-
-          db.collection('users').doc(phoneInput).set({
-            username: phoneInput,
-            password: password,
-            name: name,
-            phone: phoneInput,
-            age: age,
-            gender: gender,
-            role: "user",
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-          }).then(() => {
-            alert("আপনার মোবাইল ভেরিফিকেশন সফল এবং অ্যাকাউন্টটি তৈরি হয়েছে! এখন লগইন করুন।");
-            document.getElementById('registerForm').reset();
-            document.getElementById('otpSection').style.display = 'none';
-            
-            const regBtn = document.getElementById('regSubmitBtn');
-            regBtn.style.display = 'block';
-            resetButton(regBtn, 'অ্যাকাউন্ট তৈরি করুন');
-            resetButton(verifyBtn, 'কোড ভেরিফাই ও রেজিস্ট্রেশন সম্পন্ন করুন');
-            document.getElementById('showLoginLink').click();
-          });
-        })
-        .catch((error) => {
-          console.error("OTP Verification Error:", error);
-          alert("ভুল ওটিপি কোড! আবার চেষ্টা করুন।");
-          resetButton(verifyBtn, 'কোড ভেরিফাই ও রেজিস্ট্রেশন সম্পন্ন করুন');
-        });
-    });
-
-    // ==================== ফরগট পাসওয়ার্ড লজিক ====================
-    document.getElementById('sendForgetOtpBtn').addEventListener('click', function() {
-      const phoneInput = cleanAndFormatPhone(document.getElementById('forgetPhone').value);
-      const sendForgetBtn = this;
-
-      if (!phoneInput) {
-        alert('সঠিক বাংলাদেশি মোবাইল নম্বর দিন!');
-        return;
-      }
-
-      sendForgetBtn.innerHTML = 'OTP পাঠানো হচ্ছে...';
-      sendForgetBtn.disabled = true;
-
-      db.collection('users').doc(phoneInput).get().then((doc) => {
-        if (!doc.exists) {
-          alert('এই মোবাইল নম্বরে কোনো অ্যাকাউন্ট রেজিস্টার্ড নেই!');
-          sendForgetBtn.innerHTML = 'OTP পাঠান';
-          sendForgetBtn.disabled = false;
-        } else {
-          auth.signInWithPhoneNumber("+88" + phoneInput, window.recaptchaVerifierForget)
-            .then((confirmationResult) => {
-              confirmationResultGlobal = confirmationResult;
-              document.getElementById('forgetOtpGroup').style.display = 'block';
-              document.getElementById('newPasswordGroup').style.display = 'block';
-              document.getElementById('mainForgetBtn').style.display = 'block';
-              sendForgetBtn.style.display = 'none';
-              alert('পাসওয়ার্ড পরিবর্তন করতে ফোনে পাঠানো ওটিপি কোডটি দিন।');
-              initAutoOtpReader('forgetOtp');
-            }).catch(err => {
-              alert('ওটিপি পাঠাতে সমস্যা: ' + err.message);
-              sendForgetBtn.innerHTML = 'OTP পাঠান';
-              sendForgetBtn.disabled = false;
-            });
-        }
-      });
-    });
-
-    document.getElementById('forgetForm').addEventListener('submit', function(e) {
-      e.preventDefault();
-      const phoneInput = cleanAndFormatPhone(document.getElementById('forgetPhone').value);
-      const otpCode = document.getElementById('forgetOtp').value.trim();
-      const newPassword = document.getElementById('newPassword').value;
-      const forgetSubmitBtn = document.getElementById('mainForgetBtn');
-
-      if (!phoneInput) {
-        alert('সঠিক বাংলাদেশি মোবাইল নম্বর দিন!');
-        return;
-      }
-
-      if (otpCode.length !== 6 || newPassword.length < 6) {
-        alert('সঠিক ওটিপি এবং কমপক্ষে ৬ ডিজিটের নতুন পাসওয়ার্ড দিন!');
-        return;
-      }
-
-      forgetSubmitBtn.innerHTML = 'পাসওয়ার্ড আপডেট হচ্ছে...';
-      forgetSubmitBtn.disabled = true;
-
-      confirmationResultGlobal.confirm(otpCode).then(() => {
-        db.collection('users').doc(phoneInput).update({
-          password: newPassword
-        }).then(() => {
-          alert('আপনার পাসওয়ার্ড সফলভাবে পরিবর্তিত হয়েছে! নতুন পাসওয়ার্ড দিয়ে লগইন করুন।');
-          location.reload();
-        });
-      }).catch(err => {
-        alert('ভুল ওটিপি কোড! পাসওয়ার্ড পরিবর্তন করা যায়নি।');
-        forgetSubmitBtn.innerHTML = 'পাসওয়ার্ড পরিবর্তন করুন';
-        forgetSubmitBtn.disabled = false;
-      });
-    });
-
-    // ==================== রিডাইরেকশন এবং সেশন ====================
-    function fetchUserDataAndRedirect(phoneInput, btn, originalText) {
-      db.collection('users').doc(phoneInput).get().then((doc) => {
-        const userData = doc.data();
-        sessionStorage.setItem('adminLoggedIn', 'true'); 
-        sessionStorage.setItem('loggedInUser', userData.username);
-        sessionStorage.setItem('userRole', userData.role || 'user'); 
-        sessionStorage.setItem('loginTime', new Date().getTime().toString());
-        
-        if (userData.role === 'staff') {
-          sessionStorage.setItem('can_management', userData.can_management ? 'true' : 'false');
-          sessionStorage.setItem('can_notice', userData.can_notice ? 'true' : 'false');
-          sessionStorage.setItem('can_allserial', userData.can_allserial ? 'true' : 'false');
-        }
-
-        const nextDashboard = (userData.role === 'admin' || userData.role === 'staff' || userData.role === 'owner') ? 'dashboard.html' : 'userdashboard.html';
-        
-        if (window.location.protocol === 'file:') {
-          window.location.href = nextDashboard;
-        } else {
-          window.location.href = nextDashboard === 'dashboard.html' ? '/dashboard/' : '/userdashboard.html';            
-        }
-      }).catch(err => {
-        alert('ইউজার ডেটা লোড করতে সমস্যা হয়েছে!');
-        resetButton(btn, originalText);
       });
     }
+  }).catch((err) => {
+    showToast('ডাটাবেজ চেক করতে সমস্যা!', 'error');
+    resetButton(regButton, originalText);
+  });
+});
 
-    function resetButton(btn, text) {
-      btn.innerHTML = text;
-      btn.disabled = false;
+// OTP ভেরিফাই (রেজিস্ট্রেশন)
+document.getElementById('verifyOtpBtn').addEventListener('click', function() {
+  const code = document.getElementById('verificationCode').value.trim();
+  const verifyBtn = document.getElementById('verifyOtpBtn');
+  
+  if (code.length !== 6) {
+    showToast('৬ ডিজিটের ওটিপি দিন!', 'error');
+    return;
+  }
+
+  verifyBtn.innerHTML = '<span class="spinner"></span> ভেরিফাই হচ্ছে...';
+  verifyBtn.disabled = true;
+
+  const result = verifyOTP(regPhone, code);
+  if (result.success) {
+    const { name, phone, password } = regData;
+    db.collection('users').doc(phone).set({
+      username: phone,
+      password: password,
+      name: name,
+      phone: phone,
+      age: document.getElementById('regAge').value,
+      gender: document.getElementById('regGender').value,
+      role: "user",
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => {
+      showToast('✅ অ্যাকাউন্ট তৈরি হয়েছে!', 'success');
+      document.getElementById('registerForm').reset();
+      document.getElementById('otpSection').style.display = 'none';
+      const regBtn = document.getElementById('regSubmitBtn');
+      regBtn.style.display = 'block';
+      resetButton(regBtn, 'অ্যাকাউন্ট তৈরি করুন');
+      resetButton(verifyBtn, 'কোড ভেরিফাই ও রেজিস্ট্রেশন সম্পন্ন করুন');
+      document.getElementById('showLoginLink').click();
+    });
+  } else {
+    showToast('❌ ' + result.message, 'error');
+    resetButton(verifyBtn, 'কোড ভেরিফাই ও রেজিস্ট্রেশন সম্পন্ন করুন');
+  }
+});
+
+// ============================================================
+// 🔄 ফরগেট পাসওয়ার্ড (OTP দিয়ে)
+// ============================================================
+let forgetPhone = null;
+
+document.getElementById('sendForgetOtpBtn').addEventListener('click', function() {
+  const phoneInput = cleanAndFormatPhone(document.getElementById('forgetPhone').value);
+  const sendForgetBtn = this;
+
+  if (!phoneInput) {
+    showToast('সঠিক মোবাইল নম্বর দিন!', 'error');
+    return;
+  }
+
+  sendForgetBtn.innerHTML = '<span class="spinner"></span> OTP পাঠানো হচ্ছে...';
+  sendForgetBtn.disabled = true;
+
+  db.collection('users').doc(phoneInput).get().then((doc) => {
+    if (!doc.exists) {
+      showToast('এই নম্বরে কোনো অ্যাকাউন্ট নেই!', 'error');
+      resetButton(sendForgetBtn, 'OTP পাঠান');
+    } else {
+      sendOTP(phoneInput, 'forget').then((result) => {
+        if (result.success) {
+          forgetPhone = phoneInput;
+          document.getElementById('forgetOtpGroup').style.display = 'block';
+          document.getElementById('newPasswordGroup').style.display = 'block';
+          document.getElementById('mainForgetBtn').style.display = 'block';
+          sendForgetBtn.style.display = 'none';
+          showToast('OTP পাঠানো হয়েছে!', 'success');
+        } else {
+          showToast('OTP পাঠাতে সমস্যা!', 'error');
+          resetButton(sendForgetBtn, 'OTP পাঠান');
+        }
+      });
+    }
+  });
+});
+
+document.getElementById('forgetForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const otpCode = document.getElementById('forgetOtp').value.trim();
+  const newPassword = document.getElementById('newPassword').value;
+  const forgetSubmitBtn = document.getElementById('mainForgetBtn');
+
+  if (otpCode.length !== 6 || newPassword.length < 6) {
+    showToast('সঠিক OTP এবং ৬ ডিজিটের পাসওয়ার্ড দিন!', 'error');
+    return;
+  }
+
+  forgetSubmitBtn.innerHTML = '<span class="spinner"></span> আপডেট হচ্ছে...';
+  forgetSubmitBtn.disabled = true;
+
+  const result = verifyOTP(forgetPhone, otpCode);
+  if (result.success) {
+    db.collection('users').doc(forgetPhone).update({
+      password: newPassword
+    }).then(() => {
+      showToast('✅ পাসওয়ার্ড পরিবর্তিত হয়েছে!', 'success');
+      location.reload();
+    });
+  } else {
+    showToast('❌ ' + result.message, 'error');
+    resetButton(forgetSubmitBtn, 'পাসওয়ার্ড পরিবর্তন করুন');
+  }
+});
+
+// ============================================================
+// 🚀 রিডাইরেকশন ও সেশন
+// ============================================================
+function fetchUserDataAndRedirect(phoneInput, btn, originalText) {
+  db.collection('users').doc(phoneInput).get().then((doc) => {
+    const userData = doc.data();
+    sessionStorage.setItem('adminLoggedIn', 'true');
+    sessionStorage.setItem('loggedInUser', userData.username);
+    sessionStorage.setItem('userRole', userData.role || 'user');
+    sessionStorage.setItem('loginTime', new Date().getTime().toString());
+    
+    if (userData.role === 'staff') {
+      sessionStorage.setItem('can_management', userData.can_management ? 'true' : 'false');
+      sessionStorage.setItem('can_notice', userData.can_notice ? 'true' : 'false');
+      sessionStorage.setItem('can_allserial', userData.can_allserial ? 'true' : 'false');
     }
 
-    // ==================== অ্যানিমেশন লজিক ====================
-    document.addEventListener('DOMContentLoaded', function() {
-      if(document.getElementById('username')) document.getElementById('username').focus();
-      
-      document.querySelectorAll('input, select').forEach(input => {
-        input.addEventListener('focus', function() {
-          this.style.transform = 'translateY(-2px)';
-          this.style.boxShadow = '0 5px 15px rgba(122, 184, 212, 0.4)';
-        });
-        
-        input.addEventListener('blur', function() {
-          this.style.transform = 'translateY(0)';
-          this.style.boxShadow = 'none';
-        });
-      });
+    const nextDashboard = (userData.role === 'admin' || userData.role === 'staff' || userData.role === 'owner') ? 'dashboard.html' : 'userdashboard.html';
+    window.location.href = nextDashboard;
+  }).catch(err => {
+    showToast('ইউজার ডেটা লোড করতে সমস্যা!', 'error');
+    resetButton(btn, originalText);
+  });
+}
 
-      // ✅ সেশন চেক (login.html থেকে নেওয়া)
-      if (sessionStorage.getItem('adminLoggedIn')) {
-        const loginTime = sessionStorage.getItem('loginTime');
-        const currentTime = new Date().getTime();
-        
-        if (loginTime && (currentTime - parseInt(loginTime)) < (2 * 60 * 60 * 1000)) {
-          const savedRole = sessionStorage.getItem('userRole') || 'user';
-          const nextDashboard = (savedRole === 'admin' || savedRole === 'staff') ? 'dashboard.html' : 'userdashboard.html';
+function resetButton(btn, text) {
+  btn.innerHTML = text;
+  btn.disabled = false;
+}
 
-          if (window.location.protocol === 'file:') {
-            window.location.href = nextDashboard;
-          } else {
-            window.location.href = nextDashboard === 'dashboard.html' ? '/dashboard/' : '/userdashboard.html';            
-          }
-        } else {
-          sessionStorage.clear();
-        }
-      }
-    });
-  </script>
+// ============================================================
+// 🔗 লিংক টগল
+// ============================================================
+document.getElementById('showRegisterLink').addEventListener('click', function(e) {
+  e.preventDefault();
+  switchBox('registerBox');
+  document.getElementById('regName').focus();
+});
+
+document.getElementById('showLoginLink').addEventListener('click', function(e) {
+  e.preventDefault();
+  switchBox('loginBox');
+  document.getElementById('username').focus();
+});
+
+document.getElementById('forgetPasswordLink').addEventListener('click', function(e) {
+  e.preventDefault();
+  switchBox('forgetBox');
+  document.getElementById('forgetPhone').focus();
+});
+
+document.getElementById('backToLoginLink').addEventListener('click', function(e) {
+  e.preventDefault();
+  switchBox('loginBox');
+});
+
+// ============================================================
+// 👤 নাম ভ্যালিডেশন
+// ============================================================
+const regNameInput = document.getElementById('regName');
+const regNameError = document.getElementById('regNameError');
+
+if (regNameInput && regNameError) {
+  regNameInput.addEventListener('input', function() {
+    const val = this.value.trim();
+    const lowerVal = val.toLowerCase();
+    
+    const baseValid = /^[\p{L}\p{M}\. ]{3,50}$/u.test(val);
+    const hasVowelOrCar = /[aeiouAEIOU\u0985-\u0994\u09BE-\u09CC]/.test(val);
+    const hasConsecutiveConsonants = /[bcdfghjklmnpqrstvwxyz]{4,}/.test(lowerVal);
+    const hasRepeatedChars = /(.)\1\1/.test(lowerVal);
+
+    if (!baseValid || !hasVowelOrCar || hasConsecutiveConsonants || hasRepeatedChars) {
+      regNameError.style.display = 'block';
+      regNameInput.setCustomValidity('invalid');
+    } else {
+      regNameError.style.display = 'none';
+      regNameInput.setCustomValidity('');
+    }
+  });
+}
+
+// ============================================================
+// ⌨️ Enter Key
+// ============================================================
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    const activeBox = document.querySelector('#loginBox[style*="display: block"], #registerBox[style*="display: block"], #forgetBox[style*="display: block"]');
+    if (activeBox) {
+      const submitBtn = activeBox.querySelector('.login-btn:not(:disabled)');
+      if (submitBtn) submitBtn.click();
+    }
+  }
+});
+
+// ============================================================
+// 🔍 সেশন চেক
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+  if (document.getElementById('username')) document.getElementById('username').focus();
+
+  if (sessionStorage.getItem('adminLoggedIn')) {
+    const loginTime = sessionStorage.getItem('loginTime');
+    const currentTime = new Date().getTime();
+    
+    if (loginTime && (currentTime - parseInt(loginTime)) < (2 * 60 * 60 * 1000)) {
+      const savedRole = sessionStorage.getItem('userRole') || 'user';
+      const nextDashboard = (savedRole === 'admin' || savedRole === 'staff') ? 'dashboard.html' : 'userdashboard.html';
+      window.location.href = nextDashboard;
+    } else {
+      sessionStorage.clear();
+    }
+  }
+});
+
+console.log('✅ লগইন সিস্টেম রেডি (OTP লগইন বাদ, automas API)');
+</script>
+
 </body>
 </html>

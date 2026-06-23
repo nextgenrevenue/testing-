@@ -678,9 +678,7 @@ function renderTable() {
   }).join('');
 }
 
-// ============================================================
-// ✅ সাইডবার স্ট্যাট আপডেট - components-inline.js এর ফাংশন ব্যবহার
-// ============================================================
+// সাইডবার স্ট্যাট আপডেট - উভয় DB থেকে
 function updateSidebarStats() {
   const total = allAppointments.length;
   const pending = allAppointments.filter(a => {
@@ -694,16 +692,15 @@ function updateSidebarStats() {
       appDate.setHours(0,0,0,0);
       if (appDate < today) return false;
     }
-    return true;
+    // পেন্ডিং চেক
+    const statusText = a.status ? a.status.toString().trim().toLowerCase() : '';
+    return statusText === 'pending' || statusText === 'পেন্ডিং';
   });
   
-  console.log(`📊 সাইডবার আপডেট: মোট=${total}, পেন্ডিং=${pending.length}`);
-  
-  // ✅ components-inline.js এর window.updateSidebarStats ফাংশন কল
+  // ✅ components-inline.js এর ফাংশন কল
   if (typeof window.updateSidebarStats === 'function') {
     window.updateSidebarStats(total, pending.length);
   } else {
-    // 🔥 ব্যাকআপ: সরাসরি DOM আপডেট
     const sideTotal = document.getElementById('sideTotal');
     const sidePending = document.getElementById('sidePending');
     if (sideTotal) sideTotal.textContent = total;
@@ -1130,12 +1127,16 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (e.target === modal) modal.style.display = 'none';
   });
 
-  // ডাটা লোড
+// ডাটা লোড
   await loadRanges();
   await fetchAppointments();
   setupListeners();
 
-  setTimeout(() => { updateSidebarStats(); }, 1000);
+  setTimeout(() => {
+    if (window.ComponentLoader && window.ComponentLoader.initGlobalSidebarStats) {
+      window.ComponentLoader.initGlobalSidebarStats();
+    }
+  }, 1000);
 });
 
 // ============================================================
