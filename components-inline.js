@@ -611,6 +611,7 @@
       { id: 'my-serials', icon: 'fa-list-alt', label: 'সিরিয়াল তালিকা', page: 'my-serials' },
       { id: 'book-serial', icon: 'fa-calendar-plus', label: 'সিরিয়াল বুক', page: 'book-serial' },
       { id: 'tokenmanagement', icon: 'fa-ticket-alt', label: 'টোকেন ম্যানেজমেন্ট', page: 'tokenmanagement' },
+      { id: 'admin-chat', icon: 'fa-comment-dots', label: 'লাইভ চ্যাট', page: 'admin-chat' },
       { id: 'notice', icon: 'fa-bullhorn', label: 'নোটিশ', page: 'notice' },
       { id: 'profile', icon: 'fa-user-edit', label: 'প্রোফাইল', page: 'profile', isDropdown: true },
     ],
@@ -622,6 +623,7 @@
       { id: 'allserial', icon: 'fa-calendar-check', label: 'অ্যাপয়েন্টমেন্ট সমুহ', page: 'allserial' },
       { id: 'management', icon: 'fa-tasks', label: 'সিরিয়াল ম্যানেজমেন্ট', page: 'management' },
       { id: 'admincontrol', icon: 'fa-user-shield', label: 'অ্যাডমিন কন্ট্রোল', page: 'admincontrol' },
+      { id: 'admin-chat', icon: 'fa-comment-dots', label: 'লাইভ চ্যাট', page: 'admin-chat' },
       { id: 'notice', icon: 'fa-bullhorn', label: 'নোটিশ', page: 'notice' },
       { id: 'reports', icon: 'fa-chart-line', label: 'রিপোর্ট', page: 'reports' },
       { id: 'profile', icon: 'fa-user-edit', label: 'প্রোফাইল', page: 'profile', isDropdown: true },
@@ -1073,7 +1075,7 @@ async loadNameFromFirebase(phone) {
      const currentPageName = path.split("/").pop();
      
      const pages = ['dashboard', 'my-serials', 'book-serial', 'profile', 'change-password',
-                    'tokenmanagement', 'notice', 'allserial', 'management', 'admincontrol', 'reports'];
+                    'tokenmanagement', 'notice', 'allserial', 'management','admin-chat', 'admincontrol', 'reports'];
      
      if (pages.includes(currentPageName)) {
        return currentPageName;
