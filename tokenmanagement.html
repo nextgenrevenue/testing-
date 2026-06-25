@@ -879,7 +879,7 @@ async function loadTokenData() {
       const status = due === 0 ? 'paid' : 'due';
       const tokenNumber = token.tokenNumber || '—';
       const serialNumber = token.serial || '—';
-      const givenBy = token.givenBy || token.reference || token.source || '—';
+      const givenBy = token.givenBy || token.reference || '—';
       
       return `
         <tr>
@@ -1204,6 +1204,7 @@ async function viewTokenDetails(id) {
       <div class="token-detail-row"><span class="token-detail-label">বয়স:</span><span class="token-detail-value"><input type="text" id="editAge" value="${token.patientAge || ''}"></span></div>
       <div class="token-detail-row"><span class="token-detail-label">ফোন:</span><span class="token-detail-value"><input type="text" id="editPhone" value="${token.patientPhone || ''}"></span></div>
       <div class="token-detail-row"><span class="token-detail-label">ধরন:</span><span class="token-detail-value"><select id="editPatientType"><option value="new" ${token.patientType === 'new' ? 'selected' : ''}>নতুন</option><option value="old" ${token.patientType === 'old' ? 'selected' : ''}>পুরাতন</option></select></span></div>
+      <div class="token-detail-row"><span class="token-detail-label">রেফারেন্স:</span><span class="token-detail-value"><input type="text" id="editGivenBy" value="${escapeHtml(token.givenBy || token.reference || '')}" placeholder="রেফারেন্স নাম লিখুন"></span></div>
       <div class="token-detail-row"><span class="token-detail-label">ফি:</span><span class="token-detail-value"><input type="number" id="editFee" value="${fee}" onchange="calculateDue()"></span></div>
       <div class="token-detail-row"><span class="token-detail-label">পরিশোধিত:</span><span class="token-detail-value"><input type="number" id="editPaid" value="${paid}" onchange="calculateDue()"><br><small id="dueAmount" style="color: ${due > 0 ? '#ef4444' : '#10b981'}">বাকি: ${due > 0 ? toBengaliNumber(due) : '০'} টাকা</small></span></div>
     </div>
@@ -1235,7 +1236,7 @@ async function saveTokenDetails() {
   const newPatientType = document.getElementById('editPatientType')?.value || 'new';
   const newFee = parseInt(document.getElementById('editFee')?.value) || (newPatientType === 'new' ? 800 : 600);
   const newPaid = parseInt(document.getElementById('editPaid')?.value) || 0;
-  
+  const newGivenBy = document.getElementById('editGivenBy')?.value || '';
   const oldPaid = currentTokenDoc.tokenPaid || 0;
   const newDue = newFee - newPaid;
   
@@ -1246,7 +1247,6 @@ async function saveTokenDetails() {
     
     let paymentHistory = existingData.paymentHistory || [];
     
-    // পেমেন্ট পরিবর্তন হলে ইতিহাসে যোগ করুন (serverTimestamp ছাড়া)
     if (newPaid !== oldPaid) {
       const difference = newPaid - oldPaid;
       paymentHistory.push({
@@ -1257,7 +1257,7 @@ async function saveTokenDetails() {
         previousPaid: oldPaid,
         newPaid: newPaid,
         note: difference > 0 ? `অতিরিক্ত পরিশোধ: ${difference} টাকা` : `ফেরত: ${Math.abs(difference)} টাকা`,
-        timestamp: new Date().toISOString(), // 🔥 serverTimestamp এর পরিবর্তে সাধারণ timestamp
+        timestamp: new Date().toISOString(),
         createdBy: sessionStorage.getItem('adminEmail') || 'admin'
       });
     }
@@ -1272,8 +1272,10 @@ async function saveTokenDetails() {
       tokenPaid: newPaid,
       tokenDue: newDue,
       status: newDue === 0 ? 'paid' : 'due',
+      givenBy: newGivenBy,
+      reference: newGivenBy,
       paymentHistory: paymentHistory,
-      lastUpdated: new Date().toISOString() // 🔥 serverTimestamp এর পরিবর্তে
+      lastUpdated: new Date().toISOString()
     });
     
     if (currentTokenDoc.appointmentId) {

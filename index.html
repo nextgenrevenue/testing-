@@ -443,6 +443,246 @@
       color: #ffeb3b;
       margin-top: 0.5rem;
     }
+
+
+    /* Floating Chat Button - Bottom Right */
+.chat-float-btn {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 65px;
+  height: 65px;
+  background: linear-gradient(135deg, #8ecae6, #ff6f91);
+  border-radius: 50%;
+  border: none;
+  color: white;
+  font-size: 28px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  cursor: pointer;
+  z-index: 999;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.chat-float-btn:hover {
+  transform: scale(1.1) rotate(-10deg);
+  box-shadow: 0 6px 25px rgba(0,0,0,0.4);
+}
+
+.chat-float-btn .badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #ff4757;
+  color: white;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  font-size: 12px;
+  font-weight: bold;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  animation: bounce 1s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+/* Chat Popup Window */
+.chat-popup {
+  position: fixed;
+  bottom: 110px;
+  right: 30px;
+  width: 380px;
+  max-width: 90vw;
+  height: 500px;
+  max-height: 70vh;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+  z-index: 999;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideUpChat 0.4s ease;
+}
+
+@keyframes slideUpChat {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.chat-popup.active {
+  display: flex;
+}
+
+.chat-popup-header {
+  background: linear-gradient(135deg, #8ecae6, #ff6f91);
+  color: white;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.chat-popup-header .close-chat {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0 5px;
+  transition: 0.3s;
+}
+
+.chat-popup-header .close-chat:hover {
+  transform: rotate(90deg);
+}
+
+.chat-popup-body {
+  flex: 1;
+  padding: 15px;
+  overflow-y: auto;
+  background: #f8f9fa;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-popup-body .message {
+  margin: 5px 0;
+  padding: 10px 15px;
+  border-radius: 18px;
+  max-width: 80%;
+  word-wrap: break-word;
+  font-size: 14px;
+}
+
+.chat-popup-body .message.self {
+  background: #8ecae6;
+  color: white;
+  align-self: flex-end;
+  border-bottom-right-radius: 5px;
+}
+
+.chat-popup-body .message.other {
+  background: #e9ecef;
+  color: #333;
+  align-self: flex-start;
+  border-bottom-left-radius: 5px;
+}
+
+.chat-popup-body .message .time {
+  font-size: 10px;
+  opacity: 0.7;
+  margin-top: 4px;
+}
+
+.chat-popup-body .message .admin-tag {
+  font-size: 10px;
+  background: #ff6f91;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-right: 5px;
+}
+
+.chat-popup-footer {
+  padding: 15px;
+  background: white;
+  border-top: 1px solid #e0e0e0;
+  display: flex;
+  gap: 10px;
+}
+
+.chat-popup-footer input {
+  flex: 1;
+  padding: 10px 15px;
+  border: 2px solid #ddd;
+  border-radius: 25px;
+  font-size: 14px;
+  outline: none;
+  transition: 0.3s;
+}
+
+.chat-popup-footer input:focus {
+  border-color: #8ecae6;
+}
+
+.chat-popup-footer button {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #8ecae6, #ff6f91);
+  color: white;
+  border: none;
+  border-radius: 25px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+  white-space: nowrap;
+}
+
+.chat-popup-footer button:hover {
+  transform: scale(1.05);
+}
+
+.chat-popup-footer button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.chat-status-text {
+  text-align: center;
+  font-size: 12px;
+  color: #888;
+  padding: 5px;
+}
+
+.chat-user-id {
+  text-align: center;
+  font-size: 11px;
+  color: #999;
+  padding: 5px;
+  background: #f0f0f0;
+  border-radius: 5px;
+  margin: 5px 0;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .chat-popup {
+    bottom: 90px;
+    right: 10px;
+    width: calc(100% - 20px);
+    height: 60vh;
+    max-height: 60vh;
+  }
+  
+  .chat-float-btn {
+    bottom: 20px;
+    right: 20px;
+    width: 55px;
+    height: 55px;
+    font-size: 24px;
+  }
+}
     
     footer {
       text-align: center;
@@ -911,6 +1151,35 @@
       </div>
     </section>
 
+    <!-- Floating Chat Button -->
+<button class="chat-float-btn" id="chatFloatBtn" aria-label="Open Chat">
+  💬
+  <span class="badge" id="chatBadge">1</span>
+</button>
+
+<!-- Chat Popup Window -->
+<div class="chat-popup" id="chatPopup">
+  <div class="chat-popup-header">
+    <span>💬 লাইভ চ্যাট</span>
+    <button class="close-chat" id="closeChatBtn">✕</button>
+  </div>
+  <div class="chat-popup-body" id="chatPopupBody">
+
+      <div id="phoneInputArea" style="display:flex; flex-direction:column; padding:20px; gap:10px; background:#fff; border-radius:10px; margin:10px;">
+    <label style="font-weight:600;">আপনার ফোন নম্বর দিন:</label>
+    <input type="tel" id="phoneInput" placeholder="01XXXXXXXXX" style="padding:10px; border:2px solid #ddd; border-radius:8px; font-size:16px;" />
+    <button id="phoneSubmitBtn" style="padding:12px; background:#8ecae6; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">চ্যাট শুরু করুন</button>
+  </div>
+
+    <div class="chat-user-id" id="chatUserId">আপনার আইডি: লোড হচ্ছে...</div>
+    <div class="chat-status-text" id="chatStatusText">সংযোগ স্থাপন করা হচ্ছে...</div>
+  </div>
+  <div class="chat-popup-footer">
+    <input type="text" id="chatPopupInput" placeholder="মেসেজ লিখুন..." maxlength="200">
+    <button id="chatPopupSendBtn">পাঠান</button>
+  </div>
+</div>
+
     <!-- Hospital Info Section -->
     <section class="hospital-info">
       <div class="hospital-content">
@@ -1165,33 +1434,262 @@ async function loadDynamicContent() {
       }
     });
 
-// Initialize Firebase when page loads
+    // ---------- PRIVATE CHAT SYSTEM (User + Admin) ----------
+let chatPopupUnsubscribe = null;
+let chatPopupInitialized = false;
+let currentUserId = null;
+
+// DOM Elements
+const chatFloatBtn = document.getElementById('chatFloatBtn');
+const chatPopup = document.getElementById('chatPopup');
+const closeChatBtn = document.getElementById('closeChatBtn');
+const chatPopupBody = document.getElementById('chatPopupBody');
+const chatPopupInput = document.getElementById('chatPopupInput');
+const chatPopupSendBtn = document.getElementById('chatPopupSendBtn');
+const chatStatusText = document.getElementById('chatStatusText');
+const chatBadge = document.getElementById('chatBadge');
+const chatUserId = document.getElementById('chatUserId');
+const phoneInputArea = document.getElementById('phoneInputArea');
+
+// ইউজার আইডি বা ফোন নম্বর নেওয়ার ফাংশন
+function getUserId() {
+  let phone = localStorage.getItem('chatPhone');
+  return phone ? phone : null; 
+}
+
+// ফোন নম্বর সেট করার ফাংশন
+function setUserPhone(phone) {
+  localStorage.setItem('chatPhone', phone);
+  currentUserId = phone;
+  if (phoneInputArea) phoneInputArea.style.display = 'none'; // নম্বর দিলে ইনপুট বক্স লুকিয়ে যাবে
+  initializeChatPopup();
+}
+
+// Toggle Chat Popup
+function toggleChatPopup() {
+  chatPopup.classList.toggle('active');
+  if (chatPopup.classList.contains('active')) {
+    currentUserId = getUserId();
+    if (currentUserId) {
+      if (phoneInputArea) phoneInputArea.style.display = 'none';
+      if (!chatPopupInitialized) {
+        initializeChatPopup();
+      }
+    } else {
+      if (phoneInputArea) phoneInputArea.style.display = 'flex';
+      chatUserId.textContent = "অনুগ্রহ করে নম্বর দিন";
+      chatStatusText.textContent = "❌ সংযুক্ত নয়";
+    }
+    chatBadge.style.display = 'none';
+    chatPopupBody.scrollTop = chatPopupBody.scrollHeight;
+  }
+}
+
+// Close Chat
+function closeChatPopup() {
+  chatPopup.classList.remove('active');
+}
+
+// Initialize Chat
+async function initializeChatPopup() {
+  if (!firebaseApp) {
+    initializeFirebase();
+  }
+  if (!db) {
+    console.error('Firestore not ready');
+    return;
+  }
+
+  currentUserId = getUserId();
+  if (!currentUserId) return;
+
+  chatPopupInitialized = true;
+  chatUserId.textContent = `আপনার নম্বর: ${currentUserId}`;
+  chatStatusText.textContent = '✅ সংযুক্ত';
+
+  try {
+    const userChatRef = db.collection('chats').doc(currentUserId).collection('messages');
+    
+    // রিয়েল-টাইম লিসেনার
+    chatPopupUnsubscribe = userChatRef
+      .orderBy('timestamp', 'asc')
+      .limit(50)
+      .onSnapshot((snapshot) => {
+        // স্ক্রিন ক্লিয়ার করে নতুন মেসেজ লোড করা (ফোন ইনপুট এরিয়া বাদে)
+        const messages = chatPopupBody.querySelectorAll('.message');
+        messages.forEach(m => m.remove());
+
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          appendPopupMessage(data.text, data.sender, data.timestamp, doc.id);
+        });
+        
+        chatPopupBody.scrollTop = chatPopupBody.scrollHeight;
+        
+        if (!chatPopup.classList.contains('active')) {
+          const lastMsg = snapshot.docs[snapshot.docs.length - 1];
+          if (lastMsg && lastMsg.data().sender === 'admin') {
+            chatBadge.textContent = '1';
+            chatBadge.style.display = 'flex';
+          }
+        }
+      }, (error) => {
+        console.error('Chat listener error:', error);
+        chatStatusText.textContent = '⚠️ সংযোগ সমস্যা';
+      });
+
+  } catch (error) {
+    console.error('Error loading chats:', error);
+    chatStatusText.textContent = '❌ লোড করতে ব্যর্থ';
+  }
+}
+
+function appendPopupMessage(text, sender, timestamp, docId = null) {
+  const messageDiv = document.createElement('div');
+  messageDiv.className = `message ${sender === 'user' ? 'self' : 'other'}`;
+  if (docId) messageDiv.dataset.id = docId;
+
+  const time = timestamp ? new Date(timestamp.seconds * 1000) : new Date();
+  const timeStr = time.toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' });
+
+  let senderName = sender === 'user' ? 'আপনি' : 'ডাঃ মাসুম';
+  let adminTag = sender === 'admin' ? '<span class="admin-tag">ডাক্তার</span> ' : '';
+
+  messageDiv.innerHTML = `
+    <div>${adminTag}${escapeHtml(text)}</div>
+    <div class="time">${senderName} • ${timeStr}</div>
+  `;
+  chatPopupBody.appendChild(messageDiv);
+  chatPopupBody.scrollTop = chatPopupBody.scrollHeight;
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// মেসেজ পাঠানোর মূল ফাংশন (যা আগে ব্র্যাকেট লক না থাকায় এরর দিচ্ছিল)
+async function sendPopupMessage() {
+  const text = chatPopupInput.value.trim();
+  if (!text || !currentUserId) return;
+
+  try {
+    const userChatRef = db.collection('chats').doc(currentUserId).collection('messages');
+    const snapshot = await userChatRef.limit(1).get();
+    const isFirstMessage = snapshot.empty;
+
+    chatPopupInput.value = '';
+
+    await userChatRef.add({
+      text: text,
+      sender: 'user',
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    await db.collection('chats').doc(currentUserId).set({
+  lastActive: firebase.firestore.FieldValue.serverTimestamp(),
+  phone: currentUserId
+}, { merge: true });
+
+    if (isFirstMessage) {
+      // পাঠান স্বাগত বার্তা - সেটিংস থেকে অথবা ডিফল্ট
+      const settingsRef = db.collection('settings').doc('autoReply');
+      const settingsDoc = await settingsRef.get();
+      let welcomeMsg = 'ডাঃ মোঃ ওয়াহিদুজ্জামান মাসুম এর চেম্বারে আপনাকে স্বাগতম! কিছু ক্ষনের মধ্যে সাপোর্ট টিম আপনার সাথে যোগাযোগ করবেন।';
+      if (settingsDoc.exists && settingsDoc.data().welcomeMessage) {
+        welcomeMsg = settingsDoc.data().welcomeMessage;
+      }
+      await userChatRef.add({
+        text: welcomeMsg,
+        sender: 'admin',
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+  } catch (e) {
+    console.error("মেসেজ পাঠাতে সমস্যা:", e);
+  }
+}
+
+// সব ইভেন্ট লিসেনার DOMContentLoaded এর ভেতরে
 document.addEventListener('DOMContentLoaded', function() {
-  // Load Firebase SDK if not already loaded
+  
+  if (chatFloatBtn) chatFloatBtn.addEventListener('click', toggleChatPopup);
+  if (closeChatBtn) closeChatBtn.addEventListener('click', closeChatPopup);
+  if (chatPopupSendBtn) chatPopupSendBtn.addEventListener('click', sendPopupMessage);
+  
+  if (chatPopupInput) {
+    chatPopupInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        sendPopupMessage();
+      }
+    });
+  }
+
+  // বাইরে ক্লিক করলে বন্ধ করা
+  document.addEventListener('click', function(e) {
+    if (chatPopup && chatPopup.classList.contains('active')) {
+      if (!chatPopup.contains(e.target) && !chatFloatBtn.contains(e.target)) {
+        closeChatPopup();
+      }
+    }
+  });
+
+  // ফোন সাবমিট বাটন লজিক
+  const phoneSubmitBtn = document.getElementById('phoneSubmitBtn');
+  if (phoneSubmitBtn) {
+    phoneSubmitBtn.addEventListener('click', function() {
+      const phoneInputEl = document.getElementById('phoneInput');
+      if (phoneInputEl) {
+        const phone = phoneInputEl.value.trim();
+        if (/^01[3-9]\d{8}$/.test(phone)) {
+          setUserPhone(phone);
+        } else {
+          alert('সঠিক বাংলাদেশি ফোন নম্বর দিন (যেমন: 017XXXXXXXX)');
+        }
+      }
+    });
+  }
+
+  const phoneInput = document.getElementById('phoneInput');
+  if (phoneInput) {
+    phoneInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        if (phoneSubmitBtn) phoneSubmitBtn.click();
+      }
+    });
+  }
+
+  // Firebase স্ক্রিপ্ট লোড চেকিং
   if (typeof firebase === 'undefined') {
     const firebaseScript = document.createElement('script');
     firebaseScript.src = 'https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js';
+    
     firebaseScript.onload = function() {
       const firestoreScript = document.createElement('script');
       firestoreScript.src = 'https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js';
+      
       firestoreScript.onload = function() {
         initializeFirebase();
-        // 🔥 টাইমার ছাড়া সরাসরি ফাংশন কল করা হলো
         loadDynamicContent(); 
+        currentUserId = getUserId();
+        if (currentUserId) {
+          initializeChatPopup();
+        }
       };
       document.head.appendChild(firestoreScript);
     };
     document.head.appendChild(firebaseScript);
   } else {
     initializeFirebase();
-    // 🔥 টাইমার ছাড়া সরাসরি ফাংশন কল করা হলো
     loadDynamicContent(); 
+    currentUserId = getUserId();
+    if (currentUserId) {
+      initializeChatPopup();
+    }
   }
 });
-  </script>
-  
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+</script>
 </body>
 </html>
