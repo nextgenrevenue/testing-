@@ -2723,10 +2723,8 @@ async function showTokenDetailsModal(button) {
     existingToken = { id: existingTokenQuery.docs[0].id, ...existingTokenQuery.docs[0].data() };
     currentTokenDoc = existingToken;
     paymentHistory = existingToken.paymentHistory || [];
-    console.log("✅ টোকেন পাওয়া গেছে:", existingToken);
   } else {
     currentTokenDoc = { id: docId, ...data };
-    console.log("❌ কোনো পুরোনো টোকেন নেই, নতুন টোকেন তৈরি হবে।");
   }
   
   const defaultFee = data.patientType === 'new' ? 800 : 600;
@@ -2776,18 +2774,28 @@ async function showTokenDetailsModal(button) {
     paymentHistoryHtml = '<div class="payment-history"><p style="color:#9ca3af; padding: 20px; text-align: center;">📭 কোনো পেমেন্ট ইতিহাস নেই</p></div>';
   }
   
-  let actionButtonHtml = '';
+  // ✅ বাটন এবং টাইটেল নির্ধারণ (এখানে বাটনে id যোগ করা হয়েছে)
+  let modalTitle = 'নতুন টোকেন প্রদান';
+  let actionButtonHtml = `
+    <button class="btn-save-print" id="savePrintTokenBtn" onclick="saveAndPrintToken(true)">
+      <i class="fas fa-print"></i> সংরক্ষণ ও প্রিন্ট
+    </button>
+  `;
+  
   if (existingToken) {
-    actionButtonHtml = `<button class="btn-save-print" style="background-color: #16a34a;" onclick="saveAndPrintToken(false)"><i class="fas fa-edit"></i>আপডেট করুন</button>`;
-  } else {
-    actionButtonHtml = `<button class="btn-save-print" onclick="saveAndPrintToken(true)"><i class="fas fa-print"></i>প্রিন্ট</button>`;
+    modalTitle = 'টোকেন বিস্তারিত ও আপডেট';
+    actionButtonHtml = `
+      <button class="btn-save-print" id="savePrintTokenBtn" style="background-color: #16a34a;" onclick="saveAndPrintToken(false)">
+        <i class="fas fa-edit"></i> তথ্য আপডেট করুন
+      </button>
+    `;
   }
 
   const modalHtml = `
     <div class="token-modal-overlay" id="tokenModalOverlay">
       <div class="token-modal-container">
         <div class="token-modal-header">
-          <h3><i class="fas fa-ticket-alt"></i> ${existingToken ? 'টোকেন বিস্তারিত ও আপডেট' : 'নতুন টোকেন প্রদান'}</h3>
+          <h3><i class="fas fa-ticket-alt"></i> ${modalTitle}</h3>
           <button class="token-modal-close" onclick="closeTokenModal()">&times;</button>
         </div>
         <div class="token-modal-body">
@@ -2815,14 +2823,15 @@ async function showTokenDetailsModal(button) {
             <input type="number" id="tokenPaid" value="${currentPaid}" placeholder="পরিশোধিত টাকা" oninput="updateDueAmount()">
             <div class="due-amount" id="dueAmount">বাকি: ${due} টাকা</div>
           </div>
-         <div class="token-form-group">
-          <label>রেফারেন্স</label>
-          <input type="text" id="tokenGivenBy" value="${existingToken?.givenBy || data.givenBy || ''}" placeholder="রেফারেন্স নাম লিখুন" style="width:100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px;">
-         </div>
+          <div class="token-form-group">
+            <label>রেফারেন্স</label>
+            <input type="text" id="tokenGivenBy" value="${existingToken?.givenBy || data.givenBy || ''}" placeholder="রেফারেন্স নাম লিখুন" style="width:100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px;">
+          </div>
           ${paymentHistoryHtml}
         </div>
         <div class="token-modal-actions">
-          ${actionButtonHtml} <button class="btn-cancel-modal" onclick="closeTokenModal()"><i class="fas fa-times"></i> বাতিল</button>
+          ${actionButtonHtml}
+          <button class="btn-cancel-modal" onclick="closeTokenModal()"><i class="fas fa-times"></i> বাতিল</button>
         </div>
       </div>
     </div>
@@ -2861,20 +2870,38 @@ async function showTokenDetailsModal(button) {
 }
     
 
+// গ্লোবাল ফ্ল্যাগ – একই সময়ে একাধিক সেভ প্রতিরোধ
+let isTokenSaving = false;
+
 async function saveAndPrintToken(shouldPrint) {
+  // ✅ যদি ইতিমধ্যেই সেভ চলছে, তাহলে আরেকটি কল ব্লক করুন
+  if (isTokenSaving) {
+    showAlert('দয়া করে অপেক্ষা করুন, টোকেন সংরক্ষণ করা হচ্ছে...', 'warning');
+    return;
+  }
+
   if (!currentTokenId) {
     showAlert('টোকেন তথ্য পাওয়া যায়নি', 'error');
     return;
   }
-  
-  const name = document.getElementById('tokenName')?.value || '';
-  const age = document.getElementById('tokenAge')?.value || '';
-  const patientType = document.getElementById('tokenType')?.value;
-  const fee = parseInt(document.getElementById('tokenFee')?.value) || (patientType === 'new' ? 800 : 600);
-  const paid = parseInt(document.getElementById('tokenPaid')?.value) || 0;
-  const givenBy = document.getElementById('tokenGivenBy')?.value || '';
-  
+
+  // ✅ বাটন ডিজেবল করা
+  const saveBtn = document.getElementById('savePrintTokenBtn');
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> সংরক্ষণ হচ্ছে...';
+  }
+
+  isTokenSaving = true; // লক
+
   try {
+    const name = document.getElementById('tokenName')?.value || '';
+    const age = document.getElementById('tokenAge')?.value || '';
+    const patientType = document.getElementById('tokenType')?.value;
+    const fee = parseInt(document.getElementById('tokenFee')?.value) || (patientType === 'new' ? 800 : 600);
+    const paid = parseInt(document.getElementById('tokenPaid')?.value) || 0;
+    const givenBy = document.getElementById('tokenGivenBy')?.value || '';
+    
     const appointmentDoc = await db.collection('appointments').doc(currentTokenId).get();
     const appointmentData = appointmentDoc.data();
     const originalSerial = appointmentData.serial;
@@ -2918,8 +2945,8 @@ async function saveAndPrintToken(shouldPrint) {
         tokenDue: fee - paid,
         status: (fee - paid) === 0 ? 'paid' : 'due',
         paymentHistory: paymentHistory,
-        givenBy: givenBy,          
-        reference: givenBy,        
+        givenBy: givenBy,
+        reference: givenBy,
         lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
       });
       
@@ -2977,7 +3004,7 @@ async function saveAndPrintToken(shouldPrint) {
         status: (fee - paid) === 0 ? 'paid' : 'due',
         paymentHistory: initialPaymentHistory,
         source: 'dashboard',
-        givenBy: givenBy, 
+        givenBy: givenBy,
         reference: givenBy,
         appointmentId: currentTokenId,
         serial: originalSerial,
@@ -3014,6 +3041,20 @@ async function saveAndPrintToken(shouldPrint) {
   } catch (error) {
     console.error("❌ Error saving token:", error);
     showAlert("সংরক্ষণ করতে সমস্যা হয়েছে: " + error.message, "error");
+  } finally {
+    // ✅ সব শেষে বাটন আবার সক্রিয় করুন এবং ফ্ল্যাগ রিসেট করুন
+    isTokenSaving = false;
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      // আগের টেক্সট ফিরিয়ে দিন (আমরা জানি না আসল টেক্সট কি, তাই সাধারণ রাখা)
+      if (saveBtn.innerHTML.includes('সংরক্ষণ হচ্ছে')) {
+        if (saveBtn.textContent.includes('আপডেট')) {
+          saveBtn.innerHTML = '<i class="fas fa-edit"></i> তথ্য আপডেট করুন';
+        } else {
+          saveBtn.innerHTML = '<i class="fas fa-print"></i> সংরক্ষণ ও প্রিন্ট';
+        }
+      }
+    }
   }
 }
 
@@ -3172,7 +3213,7 @@ function printTokenReceipt(tokenNumber, name, age, patientType, fee, paid) {
         <div class="info-row"><span>বয়স:</span><span>${age || '—'}</span></div>
         <div class="info-row"><span>ধরন:</span><span>${patientType === 'new' ? 'নতুন' : 'পুরাতন'}</span></div>
         <div class="info-row"><span>ফি:</span><span>${fee} টাকা</span></div>
-        <div class="footer"><p>ধন্যবাদ 🙏 সুস্থ থাকুন</p><p>${new Date().toLocaleString('bn-BD')}</p></div>
+        <div class="footer"><p>ধন্যবাদ</p><p>${new Date().toLocaleString('bn-BD')}</p></div>
       </div>
       <div class="no-print" style="text-align:center;margin-top:20px;">
         <button onclick="window.print()" style="padding:10px 20px;background:#2563eb;color:white;border:none;border-radius:8px;">🖨️ প্রিন্ট করুন</button>
