@@ -543,6 +543,15 @@
       margin-top: 4px;
     }
 
+    .chat-popup-body .message .senderName {
+      font-size: 10px;
+      background: green;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-right: 5px;
+    }
+
     .chat-popup-body .message .admin-tag {
       font-size: 10px;
       background: #ff6f91;
@@ -1507,8 +1516,8 @@
       const time = timestamp ? new Date(timestamp.seconds * 1000) : new Date();
       const timeStr = time.toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' });
 
-      let senderName = sender === 'user' ? 'আপনি' : 'ডাঃ মাসুম';
-      let adminTag = sender === 'admin' ? '<span class="admin-tag">ডাক্তার</span> ' : '';
+      let senderName = sender === 'user' ? '<span class="senderName">আপনি</span> ' : '';
+      let adminTag = sender === 'admin' ? '<span class="admin-tag">📌 সাপোর্ট</span> ' : '';
 
       messageDiv.innerHTML = `
         <div>${adminTag}${escapeHtml(text)}</div>

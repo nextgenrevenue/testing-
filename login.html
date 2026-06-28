@@ -809,6 +809,7 @@ function fetchUserDataAndRedirect(phoneInput, btn, originalText) {
     sessionStorage.setItem('loggedInUser', userData.username);
     sessionStorage.setItem('userRole', userData.role || 'user');
     sessionStorage.setItem('loginTime', new Date().getTime().toString());
+    sessionStorage.setItem('adminName', userData.name || userData.username || 'অ্যাডমিন');
     
     if (userData.role === 'staff') {
       sessionStorage.setItem('can_management', userData.can_management ? 'true' : 'false');
