@@ -1,13 +1,24 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bn">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="google-site-verification" content="q6qnX2SH5llFty6Oy1rgN5_49L_ChMSuhR4jn8mZJNE" />
-  <meta name="description" content="Book appointments with Dr. Md. Wahiduzzaman Masum - Skin, Allergy, and Sex Specialist at Khulna Medical College">
-  <meta name="keywords" content="doctor appointment, dermatology, Khulna, healthcare">
   <title>Dr. Md. Wahiduzzaman Masum</title>
+  <meta name="description" content="Book appointments with Dr. Md. Wahiduzzaman Masum - Skin, Allergy, and Sex Specialist at Khulna Medical College.">
+  <meta name="keywords" content="Doctor Appointment, Skin Specialist Khulna, Allergy, Sex Specialist, Dr. Md. Wahiduzzaman Masum">
+  <meta name="google-site-verification" content="q6qnX2SH5llFty6Oy1rgN5_49L_ChMSuhR4jn8mZJNE" />
+  <link rel="canonical" href="https://drmasum.netlify.app//" />
+  <meta property="og:title" content="Dr. Md. Wahiduzzaman Masum" />
+  <meta property="og:description" content="Book professional skin and allergy consultation in Khulna." />
+  <meta property="og:type" content="website" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#007bff">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-analytics-compat.js"></script>
+  <script src="/pwa.js" defer></script>
   
   <style> 
     :root {
@@ -1182,48 +1193,51 @@
     </div>
   </div>
 
-  <script>
-    // Firebase Configuration
-    const firebaseConfig = {
-      apiKey: "AIzaSyCUGkcHFSYVmA0KUSRHhY-ZFFAS6jpJe4M",
-      authDomain: "doctor-appointment-syste-23828.firebaseapp.com",
-      projectId: "doctor-appointment-syste-23828",
-      storageBucket: "doctor-appointment-syste-23828.appspot.com",
-      messagingSenderId: "79600391014",
-      appId: "1:79600391014:web:9688db8bb62f431ae16ea7"
-    };
+<script>
+  // Firebase Configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyCUGkcHFSYVmA0KUSRHhY-ZFFAS6jpJe4M",
+    authDomain: "doctor-appointment-syste-23828.firebaseapp.com",
+    projectId: "doctor-appointment-syste-23828",
+    storageBucket: "doctor-appointment-syste-23828.appspot.com",
+    messagingSenderId: "79600391014",
+    appId: "1:79600391014:web:9688db8bb62f431ae16ea7",
+    measurementId: "G-ESJFXWGT6J" // অ্যানালিটিক্সের জন্য এটি যোগ করা ভালো
+  };
 
-    let firebaseApp;
-    let db;
-    let firebaseReady = false;
-    let firebaseInitAttempted = false;
+  let db;
+  let analytics;
 
-    function initializeFirebase() {
-      if (firebaseInitAttempted) return firebaseReady;
-      firebaseInitAttempted = true;
-      
-      try {
-        if (typeof firebase === 'undefined') {
-          console.warn('Firebase SDK not loaded yet');
-          return false;
-        }
-        
-        if (!firebase.apps || firebase.apps.length === 0) {
-          firebaseApp = firebase.initializeApp(firebaseConfig);
-          console.log("✅ Firebase initialized successfully");
-        } else {
-          firebaseApp = firebase.apps[0];
-          console.log("✅ Firebase already initialized");
-        }
-        db = firebase.firestore();
-        firebaseReady = true;
-        return true;
-      } catch (error) {
-        console.error("❌ Firebase initialization error:", error);
-        firebaseReady = false;
+  function initializeFirebase() {
+    try {
+      // চেক করা যে Firebase SDK লোড হয়েছে কি না
+      if (typeof firebase === 'undefined') {
+        console.warn('Firebase SDK এখনো লোড হয়নি।');
         return false;
       }
+      
+      // Firebase অ্যাপ ইনিশিয়াল করা
+      if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+        console.log("✅ Firebase initialized successfully");
+      } else {
+        console.log("✅ Firebase already initialized");
+      }
+
+      // সার্ভিসগুলো সেটআপ করা
+      db = firebase.firestore();
+      analytics = firebase.analytics(); // অ্যানালিটিক্স অ্যাক্টিভেট হলো
+      
+      return true;
+    } catch (error) {
+      console.error("❌ Firebase initialization error:", error);
+      return false;
     }
+  }
+  // পেজ লোড হওয়ার সাথে সাথে ফাংশনটি কল করুন
+  window.addEventListener('DOMContentLoaded', () => {
+    initializeFirebase();
+  });
 
     // Dynamic Content Loading
     async function loadDynamicContent() {
