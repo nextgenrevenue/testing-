@@ -544,9 +544,9 @@
       .content-wrapper { padding: 8px 10px; }
     }
     
-   /* ─── RESPONSIVE BREAKPOINTS (MOBILE) ─── */
+/* ─── RESPONSIVE BREAKPOINTS (MOBILE) ─── */
     @media (max-width: 768px) {
-      /* মোবাইল মেনু বা সাইডবার কন্টেনার ঠিক রাখা */
+      /* মোবাইল সাইডবার কন্টেনার ঠিক রাখা */
       #sidebar-container {
         position: fixed !important;
         top: 0;
@@ -565,104 +565,99 @@
         transition: left 0.3s ease !important;
       }
       
-      #sidebar.mobile-open { left: 0 !important; }
+      #sidebar.mobile-open { left: 0 !important; pointer-events: auto !important; }
       #sidebar-container:has(.mobile-open) { pointer-events: auto !important; width: 290px; }
 
-      /* চ্যাট এরিয়াকে নিচ থেকে একটু উপরে তোলার জন্য ফিক্স */
+      /* স্ক্রিন হাইট ফিক্স এবং নিচ থেকে উপরে তোলা */
       .content-wrapper { 
-        padding: 0 0 16px 0; /* নিচে ১৬ পিক্সেল এক্সট্রা প্যাডিং দেওয়া হলো যেন চ্যাট এরিয়া উপরে উঠে থাকে */
-        height: calc(100vh - 65px); /* হাইট আর একটু কমিয়ে আনা হলো যেন ফুটার উপরে চলে আসে */
+        padding: 0 0 12px 0; 
+        height: calc(100vh - 60px); 
         border-radius: 0; 
       }
-      .chat-grid { border-radius: 0; height: 100%; }
       
+      .chat-grid { 
+        border-radius: 0; 
+        height: 100%; 
+        position: relative;
+        display: block; /* Flex এর বদলে Block করায় ইউজার লিস্ট ও চ্যাট সঠিকভাবে স্ক্রিনে আসবে */
+      }
+      
+      /* ইউজার লিস্ট কন্টেনার - স্ক্রিনের বাইরে যাবে না */
       .user-list-container {
         width: 100%;
         border-right: none;
         border-radius: 0;
         position: absolute;
-        top: 0; left: 0;
+        top: 0; 
+        left: 0;
         height: 100%;
         z-index: 5;
-        transform: translateX(0);
-        opacity: 1;
-        transition: transform 0.25s ease, opacity 0.2s ease;
+        transition: opacity 0.2s ease, visibility 0.2s ease;
       }
-      .user-list-container.hidden { transform: translateX(-100%); opacity: 0; pointer-events: none; }
+      /* ইউজার সিলেক্ট হলে লিস্টটি জাস্ট হাইড হবে */
+      .user-list-container.hidden { 
+        opacity: 0; 
+        visibility: hidden;
+        pointer-events: none; 
+      }
       
+      /* চ্যাট এরিয়া কন্টেনার - স্ক্রিনের বাইরে যাবে না, জাস্ট হাইড/শো হবে */
       .chat-area-container {
         width: 100%;
         border-radius: 0;
         position: absolute;
-        top: 0; left: 0;
+        top: 0; 
+        left: 0;
         height: 100%;
         z-index: 6;
-        transform: translateX(0); /* মোবাইল ভিউতে সরাসরি চ্যাট বক্স দেখানোর জন্য */
-        opacity: 1;
-        pointer-events: auto;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: opacity 0.2s ease, visibility 0.2s ease;
+      }
+      /* অ্যাক্টিভ হলে চ্যাট বক্স সামনে চলে আসবে */
+      .chat-area-container.active { 
+        opacity: 1; 
+        visibility: visible;
+        pointer-events: auto; 
       }
       
       .chat-area-header .back-btn { display: block !important; }
-      .user-item { padding: 10px 14px; }
+      .user-item { padding: 12px 14px; }
       .user-item .avatar { width: 42px; height: 42px; font-size: 15px; }
-      .user-item .info .name { font-size: 13px; }
-      .user-item .info .last-msg { font-size: 11px; }
       
       .chat-messages { padding: 10px 12px 6px 12px; }
-      .chat-messages .message { max-width: 85%; font-size: 12.5px; padding: 7px 12px; }
+      .chat-messages .message { max-width: 85%; font-size: 12.5px; }
       
-      /* ইনপুট এরিয়ার নিচের মার্জিন বাড়িয়ে একটু উপরে তোলা হলো */
+      /* ইনপুট এরিয়াকে নিচ থেকে একটু উপরে তোলার স্পেসিং */
       .chat-input-area { 
-        padding: 6px 10px; 
-        min-height: 50px; 
-        margin-bottom: 8px; /* নিচ থেকে চ্যাট ইনপুট বক্সকে উপরে তোলার জন্য মার্জিন */
+        padding: 8px 10px; 
+        min-height: 52px; 
+        margin-bottom: 10px; /* নিচ থেকে চ্যাট ইনপুট বক্সকে উপরে ধরে রাখবে */
       }
-      .chat-input-area textarea { font-size: 12px; min-height: 34px; padding: 6px 12px; border-radius: 18px; }
-      .chat-input-area .send-btn { width: 38px; height: 38px; font-size: 14px; }
+      .chat-input-area textarea { font-size: 12px; min-height: 36px; border-radius: 18px; }
+      .chat-input-area .send-btn { width: 38px; height: 38px; }
       
-      .page-header { padding: 6px 10px 0 10px; margin-bottom: 6px; }
+      .page-header { padding: 6px 10px 0 10px; margin-bottom: 4px; }
       .page-header h1 { font-size: 16px; }
       .header-actions .btn span { display: none; }
-      .header-actions .btn { padding: 5px 10px; font-size: 11px; }
-      
-      .modal-box { padding: 20px; }
     }
     
     /* ─── RESPONSIVE BREAKPOINTS (SMALL MOBILE) ─── */
     @media (max-width: 480px) {
       #sidebar { top: 48px !important; height: calc(100vh - 48px) !important; }
-      
-      /* ছোট মোবাইলের স্ক্রিনে আরও নিখুঁতভাবে উপরে তোলার জন্য */
-      .content-wrapper { 
-        height: calc(100vh - 58px); 
-        padding-bottom: 20px; /* নিচ থেকে গ্যাপ আরও বাড়ানো হলো */
-      }
+      .content-wrapper { height: calc(100vh - 54px); padding-bottom: 14px; }
       
       .chat-input-area {
-        margin-bottom: 12px; /* ছোট ফোনে ইনপুট বক্স আরও উপরে থাকবে */
+        margin-bottom: 14px; /* ছোট ফোনে বটম নেভিগেশন বারের জন্য আরও একটু উপরে তোলা */
       }
       
       .user-list-header { padding: 10px 14px; }
-      .user-list-header h3 { font-size: 13px; }
-      .user-search { padding: 6px 12px; }
-      .user-search input { font-size: 12px; padding: 6px 12px 6px 34px; }
-      .user-item { padding: 8px 12px; gap: 10px; }
-      .user-item .avatar { width: 36px; height: 36px; font-size: 13px; }
-      .user-item .info .name { font-size: 12px; }
-      .user-item .info .last-msg { font-size: 10px; }
-      .user-item .badge-unread { font-size: 9px; min-width: 16px; line-height: 16px; padding: 0 6px; }
-      .chat-area-header { padding: 6px 10px; min-height: 50px; gap: 8px; }
-      .chat-area-header .avatar { width: 34px; height: 34px; font-size: 13px; }
-      .chat-area-header .info h4 { font-size: 12.5px; }
-      .chat-area-header .info p { font-size: 10px; }
-      .chat-area-header .back-btn { font-size: 16px; }
-      .chat-messages { padding: 8px 8px 4px 8px; }
-      .chat-messages .message { max-width: 90%; font-size: 11.5px; padding: 6px 10px; border-radius: 12px; }
-      .chat-input-area { padding: 4px 8px; min-height: 44px; gap: 6px; }
-      .chat-input-area textarea { font-size: 11px; min-height: 30px; padding: 5px 10px; border-radius: 16px; }
-      .chat-input-area .send-btn { width: 34px; height: 34px; font-size: 12px; }
-      .page-header h1 { font-size: 14px; }
-      #totalUsersBadge { font-size: 9px; padding: 1px 8px; }
+      .user-search input { font-size: 12px; }
+      .user-item { padding: 10px 12px; }
+      .chat-area-header { padding: 6px 10px; min-height: 50px; }
+      .chat-messages .message { max-width: 90%; font-size: 11.5px; }
+      .chat-input-area textarea { font-size: 11px; }
     }
   </style>
   
