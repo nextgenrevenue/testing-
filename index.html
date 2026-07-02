@@ -7,7 +7,7 @@
   <meta name="description" content="Book appointments with Dr. Md. Wahiduzzaman Masum - Skin, Allergy, and Sex Specialist at Khulna Medical College.">
   <meta name="keywords" content="Doctor Appointment, Skin Specialist Khulna, Allergy, Sex Specialist, Dr. Md. Wahiduzzaman Masum">
   <meta name="google-site-verification" content="q6qnX2SH5llFty6Oy1rgN5_49L_ChMSuhR4jn8mZJNE" />
-  <link rel="canonical" href="https://drmasum.netlify.app//" />
+  <!-- <link rel="canonical" href="https://drmasum.netlify.app//" /> -->
   <meta property="og:title" content="Dr. Md. Wahiduzzaman Masum" />
   <meta property="og:description" content="Book professional skin and allergy consultation in Khulna." />
   <meta property="og:type" content="website" />
@@ -1207,27 +1207,24 @@
 
   let db;
   let analytics;
+  let firebaseReady = false;
 
-  function initializeFirebase() {
+function initializeFirebase() {
     try {
-      // চেক করা যে Firebase SDK লোড হয়েছে কি না
       if (typeof firebase === 'undefined') {
         console.warn('Firebase SDK এখনো লোড হয়নি।');
         return false;
       }
       
-      // Firebase অ্যাপ ইনিশিয়াল করা
       if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
-        console.log("✅ Firebase initialized successfully");
-      } else {
-        console.log("✅ Firebase already initialized");
       }
-
-      // সার্ভিসগুলো সেটআপ করা
-      db = firebase.firestore();
-      analytics = firebase.analytics(); // অ্যানালিটিক্স অ্যাক্টিভেট হলো
       
+      db = firebase.firestore();
+      analytics = firebase.analytics();
+      
+      firebaseReady = true; // এখানে ভেরিয়েবলটি আপডেট করুন
+      console.log("✅ Firebase initialized successfully");
       return true;
     } catch (error) {
       console.error("❌ Firebase initialization error:", error);
