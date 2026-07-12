@@ -3244,7 +3244,7 @@ async function showTokenDetailsModal(button) {
   document.body.insertAdjacentHTML('beforeend', modalHtml);
 }
 
-async function printTokenReceipt(t) {
+async function printTokenReceipt(tokenNumber, name, age, patientType, fee) {
   const adminName = sessionStorage.getItem('adminName') || 'অ্যাডমিন';
 
   // ১. একটি অস্থায়ী কন্টেইনার তৈরি করা যাতে স্টাইল ঠিক থাকে
@@ -3255,15 +3255,20 @@ async function printTokenReceipt(t) {
   container.innerHTML = `
     <div style="font-family: sans-serif; border: 1px dashed #2563eb; padding: 10px; text-align: center; border-radius: 8px;">
       <div style="border-bottom: 1px dashed #ccc; margin-bottom: 10px;">
-        <h2 style="font-size: 14px; color: #2563eb; margin: 0;">ডাঃ মোঃ ওয়াহিদুজ্জামান মাসুম</h2>
+        <h2 style="font-size: 12px; color: #2563eb; margin: 0;">ডাঃ মোঃ ওয়াহিদুজ্জামান মাসুম</h2>
         <p style="font-size: 10px; margin: 2px 0;">টোকেন নাম্বার</p>
       </div>
-      <div style="font-size: 24px; font-weight: bold; color: #2563eb; margin: 10px 0;">${t.tokenNumber}</div>
+      <div style="font-size: 24px; font-weight: bold; color: #2563eb; margin: 10px 0;">${tokenNumber}</div>
       <div style="font-size: 12px; text-align: left;">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;"><span>রোগীর নাম:</span><span>${t.patientName || '—'}</span></div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;"><span>বয়স:</span><span>${t.patientAge || '—'}</span></div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;"><span>ধরন:</span><span>${t.patientType === 'new' ? 'নতুন' : 'পুরাতন'}</span></div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;"><span>ফি:</span><span>${toBengaliNumber(t.tokenFee)} টাকা</span></div>
+
+        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+        <span>রোগীর নাম:</span><span>${name || '—'}</span></div>
+
+        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;"><span>বয়স:</span><span>${age || '—'}</span></div>
+
+        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;"><span>ধরন:</span><span>${patientType === 'new' ? 'নতুন' : 'পুরাতন'}</span></div>
+
+        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;"><span>ফি:</span><span>${toBengaliNumber(fee)} টাকা</span></div>
       </div>
       <div style="margin-top: 15px; font-size: 8px; color: #666;">
         <p>Printed by: ${adminName}</p>
