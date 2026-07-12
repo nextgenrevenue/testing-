@@ -7,6 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
@@ -3243,50 +3244,56 @@ async function showTokenDetailsModal(button) {
   document.body.insertAdjacentHTML('beforeend', modalHtml);
 }
 
-async function printTokenReceipt(tokenNumber, name, age, patientType, fee) {
-  const { jsPDF } = window.jspdf;
+async function printTokenReceipt(t) {
   const adminName = sessionStorage.getItem('adminName') || 'অ্যাডমিন';
 
-  // একটি নতুন পিডিএফ ডকুমেন্ট তৈরি করুন (53.34mm x 76.2mm যা ২.১০" x ৩" এর সমান)
-  const doc = new jsPDF({
-    unit: 'mm',
-    format: [53.34, 76.2]
-  });
+  // ১. একটি অস্থায়ী কন্টেইনার তৈরি করা যাতে স্টাইল ঠিক থাকে
+  const container = document.createElement('div');
+  container.style.width = '2.10in'; // ২.১০ ইঞ্চি প্রস্থ
+  container.style.backgroundColor = 'white';
+  container.style.padding = '10px';
+  container.innerHTML = `
+    <div style="font-family: sans-serif; border: 1px dashed #2563eb; padding: 10px; text-align: center; border-radius: 8px;">
+      <div style="border-bottom: 1px dashed #ccc; margin-bottom: 10px;">
+        <h2 style="font-size: 14px; color: #2563eb; margin: 0;">ডাঃ মোঃ ওয়াহিদুজ্জামান মাসুম</h2>
+        <p style="font-size: 10px; margin: 2px 0;">টোকেন নাম্বার</p>
+      </div>
+      <div style="font-size: 24px; font-weight: bold; color: #2563eb; margin: 10px 0;">${t.tokenNumber}</div>
+      <div style="font-size: 12px; text-align: left;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;"><span>রোগীর নাম:</span><span>${t.patientName || '—'}</span></div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;"><span>বয়স:</span><span>${t.patientAge || '—'}</span></div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;"><span>ধরন:</span><span>${t.patientType === 'new' ? 'নতুন' : 'পুরাতন'}</span></div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;"><span>ফি:</span><span>${toBengaliNumber(t.tokenFee)} টাকা</span></div>
+      </div>
+      <div style="margin-top: 15px; font-size: 8px; color: #666;">
+        <p>Printed by: ${adminName}</p>
+        <p>${new Date().toLocaleString('bn-BD')}</p>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(container);
 
-  // পিডিএফ-এ টেক্সট লিখুন
-  doc.setFontSize(12);
-  doc.text('Dr. Md. Wahiduzzaman Masum', 26.67, 10, { align: 'center' });
-  doc.setFontSize(18);
-  doc.text(tokenNumber.toString(), 26.67, 25, { align: 'center' });
-  
-  doc.setFontSize(10);
-  doc.text(`Name: ${name || '—'}`, 5, 40);
-  doc.text(`Age: ${age || '—'}`, 5, 48);
-  doc.text(`Type: ${patientType === 'new' ? 'নতুন' : 'পুরাতন'}`, 5, 56);
-  doc.text(`Fee: ${fee} Taka`, 5, 64);
-  
-  doc.setFontSize(8);
-  doc.text(`Printed by: ${adminName}`, 26.67, 72, { align: 'center' });
+  // ২. html2canvas দিয়ে ছবি তৈরি করা
+  const canvas = await html2canvas(container, { scale: 3 });
+  const imgData = canvas.toDataURL('image/png');
 
-  // পিডিএফ-টিকে একটি ফাইল অবজেক্ট হিসেবে তৈরি করুন
+  // ৩. jsPDF দিয়ে PDF তৈরি করা
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: [53.34, 76.2] });
+  doc.addImage(imgData, 'PNG', 0, 0, 53.34, 76.2);
+  
+  // ৪. ফাইল হিসেবে সেভ বা শেয়ার করা
   const pdfBlob = doc.output('blob');
   const file = new File([pdfBlob], "token.pdf", { type: 'application/pdf' });
 
-  // Web Share API দিয়ে শেয়ার করুন
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    try {
-      await navigator.share({
-        files: [file],
-        title: 'Token Receipt',
-        text: 'Patient token copy'
-      });
-    } catch (err) {
-      console.error('শেয়ার করতে সমস্যা হয়েছে:', err);
-    }
+    await navigator.share({ files: [file] });
   } else {
-    // শেয়ার সাপোর্ট না করলে পিডিএফ ডাউনলোড হবে
     doc.save("token.pdf");
   }
+
+  // পরিষ্কার করা
+  document.body.removeChild(container);
 }
     
     function closeTokenModal() {
