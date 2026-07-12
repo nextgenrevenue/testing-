@@ -3242,58 +3242,49 @@ async function showTokenDetailsModal(button) {
   document.body.insertAdjacentHTML('beforeend', modalHtml);
 }
 
-// ফাংশনের শুরুতে 'async' যোগ করা হয়েছে
-async function printTokenReceipt(tokenNumber, name, age, patientType, fee, paid) {
+async function printTokenReceipt(tokenNumber, name, age, patientType, fee) {
+  const { jsPDF } = window.jspdf;
   const adminName = sessionStorage.getItem('adminName') || 'অ্যাডমিন';
+
+  // একটি নতুন পিডিএফ ডকুমেন্ট তৈরি করুন (53.34mm x 76.2mm যা ২.১০" x ৩" এর সমান)
+  const doc = new jsPDF({
+    unit: 'mm',
+    format: [53.34, 76.2]
+  });
+
+  // পিডিএফ-এ টেক্সট লিখুন
+  doc.setFontSize(12);
+  doc.text('Dr. Md. Wahiduzzaman Masum', 26.67, 10, { align: 'center' });
+  doc.setFontSize(18);
+  doc.text(tokenNumber.toString(), 26.67, 25, { align: 'center' });
   
-  const htmlContent = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <style>
-        @page { size: 2.10in 3in; margin: 0; }
-        body { font-family: sans-serif; width: 2.10in; height: 3in; padding: 0.1in; margin: 0; box-sizing: border-box; }
-        .card { width: 100%; height: 100%; border: 1px dashed #2563eb; border-radius: 8px; padding: 5px; text-align: center; display: flex; flex-direction: column; justify-content: center; }
-        .header h2 { font-size: 12px; font-weight: bold; color: #2563eb; margin: 0; }
-        .token-num { font-size: 20px; font-weight: bold; color: #2563eb; margin: 8px 0; }
-        .info-row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 11px; }
-        .footer { margin-top: 5px; font-size: 8px; color: #999; }
-      </style>
-    </head>
-    <body>
-      <div class="card">
-        <div class="header"><h2>ডাঃ মোঃ ওয়াহিদুজ্জামান মাসুম</h2></div>
-        <div class="token-num">${tokenNumber}</div>
-        <div class="info-row"><span>নাম:</span><span>${name || '—'}</span></div>
-        <div class="info-row"><span>বয়স:</span><span>${age || '—'}</span></div>
-        <div class="info-row"><span>ধরন:</span><span>${patientType === 'new' ? 'নতুন' : 'পুরাতন'}</span></div>
-        <div class="info-row"><span>ফি:</span><span>${fee} টাকা</span></div>
-        <div class="footer"><p>Printed by: ${adminName}</p></div>
-      </div>
-    </body>
-    </html>
-  `;
+  doc.setFontSize(10);
+  doc.text(`Name: ${name || '—'}`, 5, 40);
+  doc.text(`Age: ${age || '—'}`, 5, 48);
+  doc.text(`Type: ${patientType === 'new' ? 'নতুন' : 'পুরাতন'}`, 5, 56);
+  doc.text(`Fee: ${fee} Taka`, 5, 64);
+  
+  doc.setFontSize(8);
+  doc.text(`Printed by: ${adminName}`, 26.67, 72, { align: 'center' });
 
-  const blob = new Blob([htmlContent], { type: 'text/html' });
-  const file = new File([blob], "token.html", { type: 'text/html' });
+  // পিডিএফ-টিকে একটি ফাইল অবজেক্ট হিসেবে তৈরি করুন
+  const pdfBlob = doc.output('blob');
+  const file = new File([pdfBlob], "token.pdf", { type: 'application/pdf' });
 
-  if (navigator.share && navigator.canShare({ files: [file] })) {
+  // Web Share API দিয়ে শেয়ার করুন
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
     try {
       await navigator.share({
         files: [file],
-        title: 'টোকেন প্রিন্ট',
-        text: 'রোগীর টোকেন কপি'
+        title: 'Token Receipt',
+        text: 'Patient token copy'
       });
     } catch (err) {
       console.error('শেয়ার করতে সমস্যা হয়েছে:', err);
     }
   } else {
-    // ফলব্যাক: যদি শেয়ার না হয়
-    const win = window.open('', '_blank');
-    win.document.write(htmlContent);
-    win.document.close();
-    setTimeout(() => win.print(), 500);
+    // শেয়ার সাপোর্ট না করলে পিডিএফ ডাউনলোড হবে
+    doc.save("token.pdf");
   }
 }
     
