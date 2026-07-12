@@ -1726,6 +1726,60 @@ const firebaseConfig = {
         hour12: true
       }).replace(/\d/g, toBengaliNumber);
     };
+
+//    function convertEnglishToBengaliName(name) {
+//   if (!name) return '—';
+  
+//   // যদি নামের মধ্যে ইংরেজি অক্ষর থাকে, তবেই কনভার্ট করবে
+//   if (/[a-zA-Z]/.test(name)) {
+//     let lowerName = name.toLowerCase().trim();
+    
+//     let converted = lowerName
+//         .replace(/ph/g, 'ফ').replace(/f/g, 'ফ')
+//         .replace(/sh/g, 'শ').replace(/ch/g, 'চ')
+//         .replace(/th/g, 'থ').replace(/kh/g, 'খ')
+//         .replace(/gh/g, 'ঘ').replace(/bh/g, 'ভ')
+//         .replace(/oo/g, 'ু').replace(/ou/g, 'ৌ')
+//         .replace(/ee/g, 'ী').replace(/ai/g, 'ৈ')
+//         .replace(/b/g, 'ব').replace(/p/g, 'প')
+//         .replace(/t/g, 'ট').replace(/d/g, 'ড')
+//         .replace(/k/g, 'ক').replace(/g/g, 'গ')
+//         .replace(/m/g, 'ম').replace(/n/g, 'ন')
+//         .replace(/r/g, 'র').replace(/l/g, 'ল')
+//         .replace(/s/g, 'স').replace(/z/g, 'জ')
+//         .replace(/j/g, 'জ').replace(/h/g, 'হ')
+//         .replace(/v/g, 'ভ').replace(/w/g, 'ওয়')
+//         .replace(/y/g, 'য়').replace(/x/g, 'ক্স');
+
+//     // ২. কার চিহ্ন ও স্বরবর্ণের সামঞ্জস্য করার আগে শব্দের শেষের 'a' হ্যান্ডেল করা
+//     // ইংরেজি নামের শেষে 'a' থাকলে সাধারণত 'া' কার হয় (যেমন: Nobita -> নোবিতা)।
+//     // কিন্তু শব্দের মাঝে ব্যঞ্জনবর্ণের পর 'a' থাকলে তা অনেক সময় উচ্চারিত হয় না (যেমন: Kamal -> কামাল, কামালা নয়)।
+    
+//     // তাই প্রথমে শব্দের শেষের 'a' কে একটি সাময়িক চিহ্ন (#) দিয়ে রাখি যেন পরে এটি 'া' কার হয়
+//     if (converted.endsWith('a')) {
+//         converted = converted.slice(0, -1) + '#';
+//     }
+
+//     // এখন বাকি 'a, i, u, e, o' কে কার চিহ্নে রূপান্তর
+//     converted = converted
+//         .replace(/a/g, '')   // শব্দের মাঝের 'a' সাধারণত বিলুপ্ত হয় (যেমন: Ka -> ক, Kam -> কম/কাম)
+//         .replace(/i/g, 'ি')
+//         .replace(/u/g, 'ু')
+//         .replace(/e/g, 'ে')
+//         .replace(/o/g, 'ো')
+//         .replace(/#/g, 'া'); // শেষের 'a' কে 'া' কারে রূপান্তর
+
+//     // ৩. প্রথম বর্ণ যদি কোনো কার চিহ্ন দিয়ে শুরু হয়, তবে তাকে পূর্ণ স্বরবর্ণে রূপান্তর
+//     const vowelMap = { 'া': 'আ', 'ি': 'ই', 'ু': 'উ', 'ে': 'এ', 'ো': 'ও' };
+//     if (vowelMap[converted.charAt(0)]) {
+//         converted = vowelMap[converted.charAt(0)] + converted.slice(1);
+//     }
+//     // ড্যাশবোর্ডে সুন্দর দেখানোর জন্য প্রতিটা শব্দের প্রথম অক্ষর বড় হাতের করার মতো করে সুন্দর ফরম্যাট করা
+//     return converted;
+//   }
+  
+//   return name; // আগে থেকে বাংলা থাকলে সেটাই রেখে দেবে
+// }
     
     // বয়স নরমালাইজেশনের জন্য ফাংশন
 function normalizeAge(years, months, days) {
@@ -2593,6 +2647,8 @@ function renderAppointments() {
   filteredDocs.forEach(item => {
     const { id, data } = item;
     const row = elements.appointmentsBody.insertRow();
+
+    // let displayName = convertEnglishToBengaliName(data.name);
     
     // স্ট্যাটাস
     const isCalled = data.called === true;
@@ -2621,7 +2677,7 @@ function renderAppointments() {
         day: 'numeric'
       });
     }
-    
+
     row.innerHTML = `
       <td>${toBengaliNumber(data.serial || 'N/A')}</td>
       <td><span class="status-badge ${callStatusClass}">${callStatusText}</span></td>
@@ -3186,43 +3242,59 @@ async function showTokenDetailsModal(button) {
   document.body.insertAdjacentHTML('beforeend', modalHtml);
 }
 
-function printTokenReceipt(tokenNumber, name, age, patientType, fee, paid) {
-  const win = window.open('', '_blank');
-  win.document.write(`
+// ফাংশনের শুরুতে 'async' যোগ করা হয়েছে
+async function printTokenReceipt(tokenNumber, name, age, patientType, fee, paid) {
+  const adminName = sessionStorage.getItem('adminName') || 'অ্যাডমিন';
+  
+  const htmlContent = `
     <!DOCTYPE html>
     <html>
     <head>
-      <title>টোকেন প্রিন্ট</title>
       <meta charset="UTF-8">
       <style>
-        @page { size: 80mm auto; margin: 0; }
-        body { font-family: 'Noto Sans Bengali', sans-serif; width: 80mm; padding: 10px; margin: 0 auto; }
-        .card { border: 1px dashed #2563eb; border-radius: 8px; padding: 12px; text-align: center; }
-        .header { border-bottom: 1px dashed #e5e7eb; padding-bottom: 8px; margin-bottom: 8px; }
-        .header h2 { font-size: 16px; color: #2563eb; margin: 0 0 3px 0; }
-        .token-num { font-size: 22px; font-weight: bold; color: #2563eb; margin: 8px 0; }
-        .info-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed #e5e7eb; font-size: 12px; }
-        .footer { margin-top: 10px; font-size: 9px; color: #9ca3af; text-align: center; }
+        @page { size: 2.10in 3in; margin: 0; }
+        body { font-family: sans-serif; width: 2.10in; height: 3in; padding: 0.1in; margin: 0; box-sizing: border-box; }
+        .card { width: 100%; height: 100%; border: 1px dashed #2563eb; border-radius: 8px; padding: 5px; text-align: center; display: flex; flex-direction: column; justify-content: center; }
+        .header h2 { font-size: 12px; font-weight: bold; color: #2563eb; margin: 0; }
+        .token-num { font-size: 20px; font-weight: bold; color: #2563eb; margin: 8px 0; }
+        .info-row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 11px; }
+        .footer { margin-top: 5px; font-size: 8px; color: #999; }
       </style>
     </head>
     <body>
       <div class="card">
         <div class="header"><h2>ডাঃ মোঃ ওয়াহিদুজ্জামান মাসুম</h2></div>
         <div class="token-num">${tokenNumber}</div>
-        <div class="info-row"><span>রোগীর নাম:</span><span>${name || '—'}</span></div>
+        <div class="info-row"><span>নাম:</span><span>${name || '—'}</span></div>
         <div class="info-row"><span>বয়স:</span><span>${age || '—'}</span></div>
         <div class="info-row"><span>ধরন:</span><span>${patientType === 'new' ? 'নতুন' : 'পুরাতন'}</span></div>
         <div class="info-row"><span>ফি:</span><span>${fee} টাকা</span></div>
-        <div class="footer"><p>ধন্যবাদ</p><p>${new Date().toLocaleString('bn-BD')}</p></div>
+        <div class="footer"><p>Printed by: ${adminName}</p></div>
       </div>
-      <div class="no-print" style="text-align:center;margin-top:20px;">
-        <button onclick="window.print()" style="padding:10px 20px;background:#2563eb;color:white;border:none;border-radius:8px;">🖨️ প্রিন্ট করুন</button>
-      </div>
-      <script>window.onload = function() { setTimeout(() => window.print(), 500); }<\/script>
     </body>
     </html>
-  `);
-  win.document.close();
+  `;
+
+  const blob = new Blob([htmlContent], { type: 'text/html' });
+  const file = new File([blob], "token.html", { type: 'text/html' });
+
+  if (navigator.share && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({
+        files: [file],
+        title: 'টোকেন প্রিন্ট',
+        text: 'রোগীর টোকেন কপি'
+      });
+    } catch (err) {
+      console.error('শেয়ার করতে সমস্যা হয়েছে:', err);
+    }
+  } else {
+    // ফলব্যাক: যদি শেয়ার না হয়
+    const win = window.open('', '_blank');
+    win.document.write(htmlContent);
+    win.document.close();
+    setTimeout(() => win.print(), 500);
+  }
 }
     
     function closeTokenModal() {
@@ -3775,7 +3847,7 @@ try {
 
       if (singleSerial) {
         // প্রতিটি রোগীর জন্য আলাদা ডাইনামিক ইংরেজি মেসেজ টেমপ্লেট
-        const smsMessage = `Dear ${patientName}, your Serial No: ${singleSerial}, Date: ${englishDateStr}, Please Present At: ${appointmentTime}. Thank you! For the next serial, visit: https://drmasum.netlify.app/`;
+        const smsMessage = `Dear ${patientName}, your Serial No: ${singleSerial}, Date: ${englishDateStr}, Estimated Time: ${appointmentTime}. Thank you! For the next serial, visit: https://drmasum.netlify.app/`;
 
         const automasUrl = `https://api.automas.com.bd/smsapiv3?apikey=${apiKey}&sender=${sender}&msisdn=${selectedPhone}&smstext=${encodeURIComponent(smsMessage)}`;
 
