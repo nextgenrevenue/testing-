@@ -1826,22 +1826,31 @@ async function generateCardPrint() {
     tempDiv.innerHTML = printHtml;
     document.body.appendChild(tempDiv);
 
-    html2canvas(tempDiv, { scale: 2 }).then(async canvas => {
-      const imgData = canvas.toDataURL('image/png');
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      pdf.addImage(imgData, 'PNG', 0, 0, 56, (canvas.height * 56) / canvas.width);
-      
-      const pdfBlob = pdf.output('blob');
-      const file = new File([pdfBlob], "Fee_Report.pdf", { type: "application/pdf" });
+html2canvas(tempDiv, { scale: 2 }).then(async canvas => {
+  const imgData = canvas.toDataURL('image/png');
+  const { jsPDF } = window.jspdf;
 
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], title: 'ফি রিপোর্ট' });
-      } else {
-        pdf.save("Fee_Report.pdf");
-      }
-      document.body.removeChild(tempDiv);
-    });
+  // ২.১০ ইঞ্চি উইডথ = ৫৩.৩৪ মিমি
+  const pageWidth = 53.34; 
+  // কন্টেন্টের হাইট অনুযায়ী পিডিএফ-এর হাইট নির্ধারণ
+  const pageHeight = (canvas.height * pageWidth) / canvas.width;
+
+  // পিডিএফ সাইজ কন্টেন্টের সমান সেট করা (a4 এর পরিবর্তে)
+  const pdf = new jsPDF('p', 'mm', [pageWidth, pageHeight]);
+  
+  // ইমেজটি পুরো পেজে সেট করা
+  pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, pageHeight);
+  
+  const pdfBlob = pdf.output('blob');
+  const file = new File([pdfBlob], "Fee_Report.pdf", { type: "application/pdf" });
+
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    await navigator.share({ files: [file], title: 'ফি রিপোর্ট' });
+  } else {
+    pdf.save("Fee_Report.pdf");
+  }
+  document.body.removeChild(tempDiv);
+});
   } else {
     const win = window.open('', '_blank');
     win.document.write(printHtml + `<script>window.onload = () => { setTimeout(() => { window.print(); window.close(); }, 500); }<\/script>`);
@@ -1983,22 +1992,31 @@ async function generateTokenPrint() {
     tempDiv.innerHTML = printHtml;
     document.body.appendChild(tempDiv);
 
-    html2canvas(tempDiv, { scale: 2 }).then(async canvas => {
-      const imgData = canvas.toDataURL('image/png');
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      pdf.addImage(imgData, 'PNG', 0, 0, 56, (canvas.height * 56) / canvas.width);
-      
-      const pdfBlob = pdf.output('blob');
-      const file = new File([pdfBlob], "Token_List.pdf", { type: "application/pdf" });
+html2canvas(tempDiv, { scale: 2 }).then(async canvas => {
+  const imgData = canvas.toDataURL('image/png');
+  const { jsPDF } = window.jspdf;
 
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], title: 'Token List' });
-      } else {
-        pdf.save("Token_List.pdf");
-      }
-      document.body.removeChild(tempDiv);
-    });
+  // ২.১০ ইঞ্চি = ৫৩.৩৪ মিমি
+  const pageWidth = 53.34; 
+  // কন্টেন্টের হাইট অনুযায়ী পিডিএফ-এর হাইট নির্ধারণ
+  const pageHeight = (canvas.height * pageWidth) / canvas.width;
+
+  // পিডিএফ সাইজ কন্টেন্টের সমান সেট করা
+  const pdf = new jsPDF('p', 'mm', [pageWidth, pageHeight]);
+  
+  // ইমেজটি পুরো পেজে সেট করা (x=0, y=0, w=pageWidth, h=pageHeight)
+  pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, pageHeight);
+  
+  const pdfBlob = pdf.output('blob');
+  const file = new File([pdfBlob], "Token_List.pdf", { type: "application/pdf" });
+
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    await navigator.share({ files: [file], title: 'Token List' });
+  } else {
+    pdf.save("Token_List.pdf");
+  }
+  document.body.removeChild(tempDiv);
+});
   } else {
     const win = window.open('', '_blank');
     win.document.write(printHtml + `<script>window.onload = () => { setTimeout(() => { window.print(); window.close(); }, 500); }<\/script>`);
