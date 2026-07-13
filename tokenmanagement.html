@@ -1747,16 +1747,14 @@ async function generateCardPrint() {
     <html>
     <head>
       <meta charset="UTF-8">
- <style>
-  /* সব এলিমেন্ট থেকে মার্জিন ও প্যাডিং সরিয়ে দেওয়া হলো */
+<style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
-  /* বডিকে ২.১০ ইঞ্চি উইডথ এবং মার্জিনহীন করা হলো */
   body { 
     font-family: 'Noto Sans Bengali', sans-serif; 
     font-size: 12px; 
     width: 2.10in; 
-    padding: 5px; /* খুব সামান্য প্যাডিং রাখা হয়েছে যাতে লেখাগুলা কাগজের সাথে লেগে না যায় */
+    padding: 5px; 
     margin: 0;
   }
 
@@ -1777,10 +1775,17 @@ async function generateCardPrint() {
     width: 100%; 
     border-collapse: collapse; 
     margin: 5px 0; 
+    table-layout: fixed; /* কলামের সাইজ ঠিক রাখতে */
   }
 
   td { 
-    padding: 3px 0; 
+    padding: 3px 0;
+    word-wrap: break-word; /* বড় লেখা ভেঙে নিচে নামাতে */
+  }
+
+  tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
 
   .footer { 
@@ -1791,7 +1796,6 @@ async function generateCardPrint() {
     padding-top: 5px; 
   }
 
-  /* প্রিন্ট করার সময় যেন বাড়তি মার্জিন না আসে */
   @media print {
     @page {
       size: 2.10in auto;
@@ -1826,27 +1830,26 @@ async function generateCardPrint() {
     tempDiv.innerHTML = printHtml;
     document.body.appendChild(tempDiv);
 
-// মোবাইলের জন্য এই অংশটি এভাবে আপডেট করুন
 html2canvas(tempDiv, { 
     scale: 2,
-    logging: false,
-    useCORS: true 
+    useCORS: true,
+    logging: false 
 }).then(async canvas => {
     const imgData = canvas.toDataURL('image/png');
     const { jsPDF } = window.jspdf;
 
-    // আপনার থার্মাল পেপারের চওড়া (৫৩ মিমি)
-    const pdfWidth = 53;
-  // কন্টেন্টের হাইট অনুযায়ী পিডিএফ-এর হাইট নির্ধারণ
-  const pageHeight = (canvas.height * pageWidth) / canvas.width;
+    const pageWidth = 53.34; // ২.১০ ইঞ্চি = ৫৩.৩৪ মিমি
+    // সর্বোচ্চ উচ্চতা নির্ধারণ করে দিন যাতে পিডিএফ ক্র্যাশ না করে
+    const maxPageHeight = 2000; 
+    let pageHeight = (canvas.height * pageWidth) / canvas.width;
+    
+    // হাইট যদি খুব বেশি হয়, তবে সেটি লিমিট করুন অথবা মাল্টিপল পেজ হ্যান্ডেল করুন
+    if (pageHeight > maxPageHeight) pageHeight = maxPageHeight;
 
-  // পিডিএফ সাইজ কন্টেন্টের সমান সেট করা (a4 এর পরিবর্তে)
-  const pdf = new jsPDF('p', 'mm', [pageWidth, pageHeight]);
-  
-  // ইমেজটি পুরো পেজে সেট করা
-  pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, pageHeight);
-  
-  const pdfBlob = pdf.output('blob');
+    const pdf = new jsPDF('p', 'mm', [pageWidth, pageHeight]);
+    pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, pageHeight);
+    
+    const pdfBlob = pdf.output('blob');
   const file = new File([pdfBlob], "Fee_Report.pdf", { type: "application/pdf" });
 
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -1918,38 +1921,52 @@ async function generateTokenPrint() {
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   
-  /* ব্রাউজারের ডিফল্ট বডি স্টাইল রিমুভ করা */
   html, body {
     margin: 0 !important;
     padding: 0 !important;
     height: auto !important;
-    min-height: auto !important;
-    width: 2.10in; /* পেপার উইডথ */
+    width: 2.10in;
   }
 
-  /* র‍্যাপারকে একদম উপরে সেট করা */
   .print-wrapper {
     width: 2.10in;
     margin: 0 !important;
-    padding: 2px; /* কন্টেন্টের চারদিকে সামান্য স্পেস */
-    min-height: 0 !important;
+    padding: 2px;
     display: block;
   }
 
   .header { text-align: center; margin-bottom: 5px; border-bottom: 1px dashed #000; padding-bottom: 2px; }
-     .header h2 { font-size: 12px; font-weight: bold; margin: 0 0 3px 0; }
+  .header h2 { font-size: 12px; font-weight: bold; margin: 0 0 3px 0; }
+  
   .filter-info { font-size: 9px; margin-bottom: 5px; background: #f0f0f0; padding: 2px; text-align: center; }
-  table { width: 100%; border-collapse: collapse; margin: 2px 0; }
-  th, td { border: 1px solid #ccc; padding: 2px; font-size: 10px; text-align: center; }
+  
+  table { 
+    width: 100%; 
+    border-collapse: collapse; 
+    margin: 2px 0; 
+    table-layout: fixed; /* কলামের সাইজ ঠিক রাখতে */
+  }
+  
+  th, td { 
+    border: 1px solid #ccc; 
+    padding: 4px 2px; 
+    font-size: 10px; 
+    text-align: center; 
+    word-wrap: break-word; /* বড় লেখা ভেঙে নিচে নামাতে */
+  }
+
+  tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
   .footer { text-align: center; font-size: 8px; margin-top: 5px; border-top: 1px dashed #000; padding-top: 2px; }
 
-  /* প্রিন্টিংয়ের জন্য মার্জিন জিরো করে দেওয়া */
   @media print {
     @page {
-      size: 2.10in auto; /* উইডথ ফিক্সড, হাইট অটো */
+      size: 2.10in auto;
       margin: 0 !important;
     }
-    body { margin: 0 !important; padding: 0 !important; }
   }
 </style>
     </head>
@@ -1997,27 +2014,26 @@ async function generateTokenPrint() {
     tempDiv.innerHTML = printHtml;
     document.body.appendChild(tempDiv);
 
-// মোবাইলের জন্য এই অংশটি এভাবে আপডেট করুন
 html2canvas(tempDiv, { 
     scale: 2,
-    logging: false,
-    useCORS: true 
+    useCORS: true,
+    logging: false 
 }).then(async canvas => {
     const imgData = canvas.toDataURL('image/png');
     const { jsPDF } = window.jspdf;
 
-    // আপনার থার্মাল পেপারের চওড়া (৫৩ মিমি)
-    const pdfWidth = 53;
-  // কন্টেন্টের হাইট অনুযায়ী পিডিএফ-এর হাইট নির্ধারণ
-  const pageHeight = (canvas.height * pageWidth) / canvas.width;
+    const pageWidth = 53.34; // ২.১০ ইঞ্চি = ৫৩.৩৪ মিমি
+    // সর্বোচ্চ উচ্চতা নির্ধারণ করে দিন যাতে পিডিএফ ক্র্যাশ না করে
+    const maxPageHeight = 2000; 
+    let pageHeight = (canvas.height * pageWidth) / canvas.width;
+    
+    // হাইট যদি খুব বেশি হয়, তবে সেটি লিমিট করুন অথবা মাল্টিপল পেজ হ্যান্ডেল করুন
+    if (pageHeight > maxPageHeight) pageHeight = maxPageHeight;
 
-  // পিডিএফ সাইজ কন্টেন্টের সমান সেট করা
-  const pdf = new jsPDF('p', 'mm', [pageWidth, pageHeight]);
-  
-  // ইমেজটি পুরো পেজে সেট করা (x=0, y=0, w=pageWidth, h=pageHeight)
-  pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, pageHeight);
-  
-  const pdfBlob = pdf.output('blob');
+    const pdf = new jsPDF('p', 'mm', [pageWidth, pageHeight]);
+    pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, pageHeight);
+    
+    const pdfBlob = pdf.output('blob');
   const file = new File([pdfBlob], "Token_List.pdf", { type: "application/pdf" });
 
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
