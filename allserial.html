@@ -1172,8 +1172,10 @@ async function runAutoArchiving() {
 
 // এই ফাংশনটি ১ম ও ২য় ডেটাবেজ থেকে ডেটা এনে একসাথে জোড়া লাগাবে
 async function loadMergedAppointments(onDataCallback) {
+// আপডেট করা ফাংশন যা নতুন স্ট্রাকচার থেকে ডেটা জোড়া লাগাবে
+async function loadMergedAppointments(onDataCallback) {
   try {
-    // ১. ১ম ডেটাবেজ থেকে রানিং ডেটা আনা
+    // ১. ১ম ডেটাবেজ (রানিং) থেকে ডেটা আনা
     const primarySnapshot = await db.collection('appointments').get();
     const primaryData = primarySnapshot.docs.map(doc => ({
       id: doc.id,
@@ -1181,33 +1183,46 @@ async function loadMergedAppointments(onDataCallback) {
       isArchived: false
     }));
 
-    // ২. ২য় ডেটাবেজ থেকে আর্কাইভ ডেটা আনা
-    const archiveSnapshot = await archiveDb.collection('archived_appointments').get();
-    const archivedData = archiveSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      isArchived: true
-    }));
+    // ২. ২য় ডেটাবেজ থেকে আর্কাইভ ডেটা আনা (নতুন স্ট্রাকচার অনুযায়ী)
+    const rootCol = archiveDb.collection('archived_appointments');
+    const dateDocs = await rootCol.get();
+    let archivedData = [];
+
+    for (const dateDoc of dateDocs.docs) {
+      const dateId = dateDoc.id; // যেমন: 260116
+      
+      // প্রতিটি তারিখের ভেতরে থাকা 'appointments' সাব-কালেকশন থেকে ডেটা সংগ্রহ
+      const apptDocs = await archiveDb.collection(`archived_appointments/${dateId}/appointments`).get();
+      
+      const subData = apptDocs.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        dateFolder: dateId, // কোন তারিখের ফোল্ডার থেকে এসেছে তা বোঝার জন্য
+        isArchived: true
+      }));
+      
+      archivedData = [...archivedData, ...subData];
+    }
 
     // ৩. দুটি ডেটাবেজের ডেটা একসাথে জোড়া (Merge) দেওয়া
     const allAppointments = [...primaryData, ...archivedData];
 
-    // ৪. তারিখ অনুযায়ী ডেটা সর্ট বা সাজানো (নতুনগুলো উপরে থাকবে)
+    // ৪. তারিখ অনুযায়ী ডেটা সর্ট করা
     allAppointments.sort((a, b) => {
       return new Date(b.visitingDate || b.date) - new Date(a.visitingDate || a.date);
     });
 
     console.log(`📊 Total Loaded: Primary (${primaryData.length}) + Archive (${archivedData.length})`);
     
-    // ৫. ডেটা তৈরি হয়ে গেলে কলব্যাক ফাংশনে পাঠিয়ে দেওয়া
     if (typeof onDataCallback === 'function') {
       onDataCallback(allAppointments);
     }
 
   } catch (error) {
-    console.error("❌ দুটি ডেটাবেজ থেকে তথ্য লোড করতে সমস্যা হয়েছে:", error);
+    console.error("❌ তথ্য লোড করতে সমস্যা হয়েছে:", error);
   }
 }
+
     // ==================== UTILITY FUNCTIONS ====================
     function showAlert(message, type = 'success') {
       const alert = document.createElement('div');
