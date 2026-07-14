@@ -1831,25 +1831,26 @@ async function generateCardPrint() {
     document.body.appendChild(tempDiv);
 
 html2canvas(tempDiv, { 
-    scale: 2,
-    useCORS: true,
-    logging: false 
+  scale: 2,
+  useCORS: true,
+  logging: false,
+  width: tempDiv.scrollWidth,
+  height: tempDiv.scrollHeight,
+  windowWidth: tempDiv.scrollWidth,
+  windowHeight: tempDiv.scrollHeight
 }).then(async canvas => {
-    const imgData = canvas.toDataURL('image/png');
-    const { jsPDF } = window.jspdf;
+  const imgData = canvas.toDataURL('image/png');
+  const { jsPDF } = window.jspdf;
 
-    const pageWidth = 53.34; // ২.১০ ইঞ্চি = ৫৩.৩৪ মিমি
-    // সর্বোচ্চ উচ্চতা নির্ধারণ করে দিন যাতে পিডিএফ ক্র্যাশ না করে
-    const maxPageHeight = 2000; 
-    let pageHeight = (canvas.height * pageWidth) / canvas.width;
-    
-    // হাইট যদি খুব বেশি হয়, তবে সেটি লিমিট করুন অথবা মাল্টিপল পেজ হ্যান্ডেল করুন
-    if (pageHeight > maxPageHeight) pageHeight = maxPageHeight;
+  const pageWidth = 53.34; // ২.১০ ইঞ্চি = ৫৩.৩৪ মিমি
+  const maxPageHeight = 2000;
+  let pageHeight = (canvas.height * pageWidth) / canvas.width;
+  if (pageHeight > maxPageHeight) pageHeight = maxPageHeight;
 
-    const pdf = new jsPDF('p', 'mm', [pageWidth, pageHeight]);
-    pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, pageHeight);
-    
-    const pdfBlob = pdf.output('blob');
+  const pdf = new jsPDF('p', 'mm', [pageWidth, pageHeight]);
+  pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, pageHeight);
+  
+  const pdfBlob = pdf.output('blob');
   const file = new File([pdfBlob], "Fee_Report.pdf", { type: "application/pdf" });
 
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -2015,25 +2016,26 @@ async function generateTokenPrint() {
     document.body.appendChild(tempDiv);
 
 html2canvas(tempDiv, { 
-    scale: 2,
-    useCORS: true,
-    logging: false 
+  scale: 2,
+  useCORS: true,
+  logging: false,
+  width: tempDiv.scrollWidth,
+  height: tempDiv.scrollHeight,
+  windowWidth: tempDiv.scrollWidth,
+  windowHeight: tempDiv.scrollHeight
 }).then(async canvas => {
-    const imgData = canvas.toDataURL('image/png');
-    const { jsPDF } = window.jspdf;
+  const imgData = canvas.toDataURL('image/png');
+  const { jsPDF } = window.jspdf;
 
-    const pageWidth = 53.34; // ২.১০ ইঞ্চি = ৫৩.৩৪ মিমি
-    // সর্বোচ্চ উচ্চতা নির্ধারণ করে দিন যাতে পিডিএফ ক্র্যাশ না করে
-    const maxPageHeight = 2000; 
-    let pageHeight = (canvas.height * pageWidth) / canvas.width;
-    
-    // হাইট যদি খুব বেশি হয়, তবে সেটি লিমিট করুন অথবা মাল্টিপল পেজ হ্যান্ডেল করুন
-    if (pageHeight > maxPageHeight) pageHeight = maxPageHeight;
+  const pageWidth = 53.34; // ২.১০ ইঞ্চি = ৫৩.৩৪ মিমি
+  const maxPageHeight = 2000;
+  let pageHeight = (canvas.height * pageWidth) / canvas.width;
+  if (pageHeight > maxPageHeight) pageHeight = maxPageHeight;
 
-    const pdf = new jsPDF('p', 'mm', [pageWidth, pageHeight]);
-    pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, pageHeight);
-    
-    const pdfBlob = pdf.output('blob');
+  const pdf = new jsPDF('p', 'mm', [pageWidth, pageHeight]);
+  pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, pageHeight);
+  
+  const pdfBlob = pdf.output('blob');
   const file = new File([pdfBlob], "Token_List.pdf", { type: "application/pdf" });
 
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
