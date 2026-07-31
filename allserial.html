@@ -12,6 +12,7 @@
   <!-- SweetAlert2 for beautiful popups -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   
   <style>
     :root {
@@ -1065,22 +1066,18 @@ async function runAutoArchiving() {
     const currentWeekStart = currentWeek.startDate;
     currentWeekStart.setHours(0, 0, 0, 0);
     
-    console.log("⌛ পুরনো ডেটা চেকিং এবং ডিলিট করার প্রক্রিয়া শুরু হয়েছে...");
+    console.log("⌛ পুরনো ডেটা চেকিং এবং আর্কাইভ/ডিলিট প্রক্রিয়া শুরু...");
     console.log("📅 বর্তমান সপ্তাহের শুরু (শনিবার):", currentWeekStart);
     
-    // ১. ১ম ডেটাবেজ থেকে সব অ্যাপয়েন্টমেন্ট আনা
     const snapshot = await db.collection('appointments').get();
     let archiveCount = 0;
     let deleteCount = 0;
-    
-    // ২. পুরনো ডেটা সংগ্রহ করা
     const oldDocuments = [];
     
     for (const doc of snapshot.docs) {
       const data = doc.data();
       let appointmentDate = null;
 
-      // তারিখ পার্স করা
       if (data.appointmentDate) {
         const [year, month, day] = data.appointmentDate.split('-');
         appointmentDate = new Date(year, month - 1, day);
@@ -1094,7 +1091,6 @@ async function runAutoArchiving() {
         appointmentDate.setHours(0, 0, 0, 0);
       }
 
-      // ৩. পুরনো ডেটা চিহ্নিত করা
       if (appointmentDate && appointmentDate < currentWeekStart) {
         oldDocuments.push({
           id: doc.id,
@@ -1105,34 +1101,34 @@ async function runAutoArchiving() {
     }
     
     console.log(`📊 মোট ${oldDocuments.length}টি পুরনো ডকুমেন্ট পাওয়া গেছে`);
-    
     if (oldDocuments.length === 0) {
       console.log("✅ কোনো পুরনো ডেটা নেই।");
       return;
     }
     
-    // ৪. প্রতি ৫০০টি করে ব্যাচে ভাগ করা
     const BATCH_SIZE = 500;
     const batches = [];
-    
     for (let i = 0; i < oldDocuments.length; i += BATCH_SIZE) {
       batches.push(oldDocuments.slice(i, i + BATCH_SIZE));
     }
-    
     console.log(`📦 ${batches.length}টি ব্যাচ তৈরি করা হয়েছে (প্রতি ব্যাচে ${BATCH_SIZE}টি)`);
     
-    // ৫. প্রতিটি ব্যাচ প্রসেস করা
     for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
       const batch = batches[batchIndex];
       const dbBatch = db.batch();
       
       console.log(`🔄 ব্যাচ ${batchIndex + 1}/${batches.length} প্রসেস করা হচ্ছে...`);
       
-      // ক) আর্কাইভে কপি করা এবং ডিলিটের জন্য ব্যাচে যোগ করা
       for (const doc of batch) {
         try {
-          // আর্কাইভে কপি
-          const archiveRef = archiveDb.collection('archived_appointments').doc(doc.id);
+          // **🔴 এখানে পরিবর্তন – সাব-কালেকশনে সংরক্ষণ**
+          const patientType = doc.data.patientType || doc.data.type || 'new';
+          const archiveRef = archiveDb
+            .collection('archived_appointments')
+            .doc(doc.id)               // প্যারেন্ট ডকুমেন্ট
+            .collection(patientType)   // সাব-কালেকশন 'new' বা 'old'
+            .doc(doc.id);              // একই আইডি দিয়ে ডকুমেন্ট
+
           await archiveRef.set({
             ...doc.data,
             archivedAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -1140,7 +1136,6 @@ async function runAutoArchiving() {
             archivedDate: new Date().toISOString()
           });
           
-          // ডিলিটের জন্য ব্যাচে যোগ
           dbBatch.delete(doc.ref);
           archiveCount++;
           
@@ -1149,15 +1144,11 @@ async function runAutoArchiving() {
         }
       }
       
-      // খ) ব্যাচ কমিট করা (ডিলিট)
       try {
         await dbBatch.commit();
         deleteCount += batch.length;
         console.log(`✅ ব্যাচ ${batchIndex + 1} সম্পূর্ণ: ${batch.length}টি ডকুমেন্ট ডিলিট করা হয়েছে`);
-        
-        // ছোট বিরতি (Firestore rate limit এড়ানোর জন্য)
         await new Promise(resolve => setTimeout(resolve, 1000));
-        
       } catch (error) {
         console.error(`❌ ব্যাচ ${batchIndex + 1} কমিট করতে সমস্যা:`, error);
       }
@@ -1170,59 +1161,65 @@ async function runAutoArchiving() {
   }
 }
 
-// এই ফাংশনটি ১ম ও ২য় ডেটাবেজ থেকে ডেটা এনে একসাথে জোড়া লাগাবে
-async function loadMergedAppointments(onDataCallback) {
-// আপডেট করা ফাংশন যা নতুন স্ট্রাকচার থেকে ডেটা জোড়া লাগাবে
+// এই ফাংশনটি ১ম ও ২য় ডেটাবেজ থেকে ডেটা এনে একসাথে জোড়া লাগাবে
 async function loadMergedAppointments(onDataCallback) {
   try {
-    // ১. ১ম ডেটাবেজ (রানিং) থেকে ডেটা আনা
-    const primarySnapshot = await db.collection('appointments').get();
-    const primaryData = primarySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      isArchived: false
-    }));
+    // -------------------------------------------------------------
+    // ১. ১ম ডেটাবেজ থেকে রানিং ডেটা আনা (new ও old সাব-কালেকশন)
+    // -------------------------------------------------------------
+    const primaryNewSnap = await db.collectionGroup('new').get();
+    const primaryOldSnap = await db.collectionGroup('old').get();
 
-    // ২. ২য় ডেটাবেজ থেকে আর্কাইভ ডেটা আনা (নতুন স্ট্রাকচার অনুযায়ী)
-    const rootCol = archiveDb.collection('archived_appointments');
-    const dateDocs = await rootCol.get();
+    const primaryData = [
+      ...primaryNewSnap.docs.map(doc => ({ id: doc.id, ...doc.data(), patientType: 'new', isArchived: false })),
+      ...primaryOldSnap.docs.map(doc => ({ id: doc.id, ...doc.data(), patientType: 'old', isArchived: false }))
+    ];
+
+    // -------------------------------------------------------------
+    // ২. ২য় ডেটাবেজ থেকে আর্কাইভ ডেটা আনা (new ও old সাব-কালেকশন)
+    // -------------------------------------------------------------
     let archivedData = [];
+    try {
+      if (typeof archiveDb !== 'undefined' && archiveDb) {
+        const archiveNewSnap = await archiveDb.collectionGroup('new').get();
+        const archiveOldSnap = await archiveDb.collectionGroup('old').get();
 
-    for (const dateDoc of dateDocs.docs) {
-      const dateId = dateDoc.id; // যেমন: 260116
-      
-      // প্রতিটি তারিখের ভেতরে থাকা 'appointments' সাব-কালেকশন থেকে ডেটা সংগ্রহ
-      const apptDocs = await archiveDb.collection(`archived_appointments/${dateId}/appointments`).get();
-      
-      const subData = apptDocs.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        dateFolder: dateId, // কোন তারিখের ফোল্ডার থেকে এসেছে তা বোঝার জন্য
-        isArchived: true
-      }));
-      
-      archivedData = [...archivedData, ...subData];
+        archivedData = [
+          ...archiveNewSnap.docs.map(doc => ({ id: doc.id, ...doc.data(), patientType: 'new', isArchived: true })),
+          ...archiveOldSnap.docs.map(doc => ({ id: doc.id, ...doc.data(), patientType: 'old', isArchived: true }))
+        ];
+      }
+    } catch (archErr) {
+      console.error("❌ ২য় ডেটাবেজ থেকে ডাটা লোড করতে সমস্যা হয়েছে:", archErr);
     }
 
-    // ৩. দুটি ডেটাবেজের ডেটা একসাথে জোড়া (Merge) দেওয়া
+    // -------------------------------------------------------------
+    // ৩. দুটি ডেটাবেজের ডেটা একসাথে জোড়া (Merge) দেওয়া
+    // -------------------------------------------------------------
     const allAppointments = [...primaryData, ...archivedData];
 
-    // ৪. তারিখ অনুযায়ী ডেটা সর্ট করা
+    // -------------------------------------------------------------
+    // ৪. তারিখ অনুযায়ী ডেটা সর্ট বা সাজানো (নতুনগুলো উপরে থাকবে)
+    // -------------------------------------------------------------
     allAppointments.sort((a, b) => {
-      return new Date(b.visitingDate || b.date) - new Date(a.visitingDate || a.date);
+      const dateA = new Date(a.appointmentDate || a.visitingDate || a.date);
+      const dateB = new Date(b.appointmentDate || b.visitingDate || b.date);
+      return dateB - dateA;
     });
 
     console.log(`📊 Total Loaded: Primary (${primaryData.length}) + Archive (${archivedData.length})`);
     
+    // -------------------------------------------------------------
+    // ৫. কলব্যাক ফাংশনে পাঠিয়ে দেওয়া
+    // -------------------------------------------------------------
     if (typeof onDataCallback === 'function') {
       onDataCallback(allAppointments);
     }
 
   } catch (error) {
-    console.error("❌ তথ্য লোড করতে সমস্যা হয়েছে:", error);
+    console.error("❌ ডেটাবেজ থেকে তথ্য লোড করতে সমস্যা হয়েছে:", error);
   }
 }
-
     // ==================== UTILITY FUNCTIONS ====================
     function showAlert(message, type = 'success') {
       const alert = document.createElement('div');
@@ -1776,68 +1773,110 @@ async function loadMergedAppointments(onDataCallback) {
         console.log('✅ Pending selections updated:', pendingSelections);
       }
       
-      async loadAppointments() {
-        try {
-          if (!this.db) return;
-          
-          // ১ম ডেটাবেজে (appointments) কোনো পরিবর্তন (নতুন সিরিয়াল, এডিট বা ডিলিট) হলে এই লিসেনারটি চালু হবে
-          const listener = this.db.collection('appointments')
-            .orderBy('timestamp', 'desc')
-            .onSnapshot(async (primarySnapshot) => {
-              console.log("⚡ ১ম ডেটাবেজে পরিবর্তন সনাক্ত হয়েছে! ২য় ডেটাবেজের সাথে মার্জ করা হচ্ছে...");
-              
-              this.appointments = [];
-              this.timeOptions.clear();
-              
-              // ক) ১ম ডেটাবেজ থেকে রানিং ডেটাগুলো নেওয়া
-              const primaryData = primarySnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-                isArchived: false
-              }));
+async loadAppointments() {
+  try {
+    if (!this.db || typeof archiveDb === 'undefined' || !archiveDb) {
+      console.warn("⚠️ Database Instance পাওয়া যায়নি!");
+      return;
+    }
 
-              // খ) ২য় ডেটাবেজ (অন্য জিমেইলের প্রজেক্ট) থেকে আর্কাইভ করা ডেটাগুলো নিয়ে আসা
-              let archivedData = [];
-              try {
-                const archiveSnapshot = await archiveDb.collection('archived_appointments').get();
-                archivedData = archiveSnapshot.docs.map(doc => ({
-                  id: doc.id,
-                  ...doc.data(),
-                  isArchived: true
-                }));
-              } catch (archError) {
-                console.error('❌ ২য় ডেটাবেজ থেকে ডাটা টানতে সমস্যা হয়েছে:', archError);
-              }
+    this.appointments = [];
+    this.timeOptions.clear();
 
-              // গ) দুটি ডেটাবেজের ডেটা একসাথে এক তালিকায় যোগ করা (Merge)
-              const mergedAppointments = [...primaryData, ...archivedData];
+    const allAppointmentsMap = {};
 
-              // ঘ) পুরো ডাটাকে আপনার অ্যাপের রুলস অনুযায়ী প্রসেস এবং টাইম ফিল্টার সেট করা
-              mergedAppointments.forEach(data => {
-                this.appointments.push(data);
-                if (data.time) {
-                  this.timeOptions.add(data.time);
-                }
-              });
-              
-              // ঙ) টেবিল রেন্ডার এবং পরিসংখ্যান আপডেট করা (আপনার আগের মেথডগুলো)
-              this.populateTimeFilter();
-              this.loadAppointmentsTable();
-              this.updateStats();
-              
-              console.log(`📊 টোটাল লোড হয়েছে: রানিং (${primaryData.length}) + আর্কাইভ (${archivedData.length})`);
-            }, error => {
-              console.error('❌ Error loading appointments:', error);
-              showAlert('অ্যাপয়েন্টমেন্ট লোড করতে সমস্যা হয়েছে', 'error');
-            });
-          
-          this.realtimeListeners.push(listener);
-          
-        } catch (error) {
-          console.error('❌ Error loading appointments:', error);
-          showAlert('অ্যাপয়েন্টমেন্ট লোড করতে সমস্যা হয়েছে', 'error');
+    // 🔄 UI আপডেটের ফাংশন
+    const processAndUpdateUI = () => {
+      this.appointments = [];
+      this.timeOptions.clear();
+
+      Object.values(allAppointmentsMap).forEach(item => {
+        this.appointments.push(item);
+        if (item.time) {
+          this.timeOptions.add(item.time);
         }
-      }
+      });
+
+      this.populateTimeFilter();
+      this.loadAppointmentsTable();
+      this.updateStats();
+    };
+
+    // -------------------------------------------------------------
+    // ১. Primary Database (appointments) – সব ডেটা লোড
+    // -------------------------------------------------------------
+    const unsubPrimaryNew = this.db.collectionGroup('new')
+      .onSnapshot(snapshot => {
+        snapshot.forEach(doc => {
+          allAppointmentsMap[`primary_new_${doc.id}`] = {
+            id: doc.id,
+            ...doc.data(),
+            patientType: 'new',
+            type: 'new',
+            isArchived: false
+          };
+        });
+        processAndUpdateUI();
+      }, err => console.error("❌ Primary 'new' লিসেনার ত্রুটি:", err));
+
+    const unsubPrimaryOld = this.db.collectionGroup('old')
+      .onSnapshot(snapshot => {
+        snapshot.forEach(doc => {
+          allAppointmentsMap[`primary_old_${doc.id}`] = {
+            id: doc.id,
+            ...doc.data(),
+            patientType: 'old',
+            type: 'old',
+            isArchived: false
+          };
+        });
+        processAndUpdateUI();
+      }, err => console.error("❌ Primary 'old' লিসেনার ত্রুটি:", err));
+
+    // -------------------------------------------------------------
+    // ২. Archive Database – সব ডেটা লোড (কোনো date ফিল্টার নেই)
+    // -------------------------------------------------------------
+    const unsubArchiveNew = archiveDb.collectionGroup('new')
+      .onSnapshot(snapshot => {
+        console.log("📦 Archive New Docs Count:", snapshot.size);
+        snapshot.forEach(doc => {
+          allAppointmentsMap[`archive_new_${doc.id}`] = {
+            id: doc.id,
+            ...doc.data(),
+            patientType: 'new',
+            type: 'new',
+            isArchived: true
+          };
+        });
+        processAndUpdateUI();
+      }, err => console.error("❌ Archive 'new' লিসেনার ত্রুটি:", err));
+
+    const unsubArchiveOld = archiveDb.collectionGroup('old')
+      .onSnapshot(snapshot => {
+        console.log("📦 Archive Old Docs Count:", snapshot.size);
+        snapshot.forEach(doc => {
+          allAppointmentsMap[`archive_old_${doc.id}`] = {
+            id: doc.id,
+            ...doc.data(),
+            patientType: 'old',
+            type: 'old',
+            isArchived: true
+          };
+        });
+        processAndUpdateUI();
+      }, err => console.error("❌ Archive 'old' লিসেনার ত্রুটি:", err));
+
+    // লিসেনারগুলো সেভ করে রাখা
+    if (!this.realtimeListeners) this.realtimeListeners = [];
+    this.realtimeListeners.push(unsubPrimaryNew, unsubPrimaryOld, unsubArchiveNew, unsubArchiveOld);
+
+  } catch (error) {
+    console.error('❌ Error loading appointments:', error);
+    if (typeof showAlert === 'function') {
+      showAlert('অ্যাপয়েন্টমেন্ট লোড করতে সমস্যা হয়েছে', 'error');
+    }
+  }
+}
       
       populateTimeFilter() {
         const timeFilter = document.getElementById('timeFilterSerial');
