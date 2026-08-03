@@ -1065,16 +1065,24 @@ async function runAutoArchiving() {
     const currentWeek = getCurrentWeekDateRange();
     const currentWeekStart = currentWeek.startDate;
     currentWeekStart.setHours(0, 0, 0, 0);
-    
-    console.log("⌛ পুরনো ডেটা চেকিং এবং আর্কাইভ/ডিলিট প্রক্রিয়া শুরু...");
+
+    console.log("⌛ পুরনো ডেটা চেকিং এবং আর্কাইভ/ডিলিট প্রক্রিয়া শুরু...");
     console.log("📅 বর্তমান সপ্তাহের শুরু (শনিবার):", currentWeekStart);
+
+    // ✅ new এবং old নামের সকল সাব-কালেকশন থেকে ডেটা আনতে collectionGroup ব্যবহার করা হচ্ছে
+    const [newSnapshot, oldSnapshot] = await Promise.all([
+      db.collectionGroup('new').get(),
+      db.collectionGroup('old').get()
+    ]);
+
+    // দুটি স্ন্যাপশট থেকে পাওয়া সব ডকুমেন্ট একসাথে করা
+    const allDocs = [...newSnapshot.docs, ...oldSnapshot.docs];
     
-    const snapshot = await db.collection('appointments').get();
     let archiveCount = 0;
     let deleteCount = 0;
     const oldDocuments = [];
-    
-    for (const doc of snapshot.docs) {
+
+    for (const doc of allDocs) {
       const data = doc.data();
       let appointmentDate = null;
 
@@ -1092,72 +1100,77 @@ async function runAutoArchiving() {
       }
 
       if (appointmentDate && appointmentDate < currentWeekStart) {
+        // parent.parent.id দিয়ে প্যারেন্ট ডকুমেন্ট আইডি (yymmdd) পাওয়া যাবে
+        const dateDocId = doc.ref.parent.parent ? doc.ref.parent.parent.id : 'unknown';
+        const patientType = doc.ref.parent.id; // 'new' অথবা 'old'
+
         oldDocuments.push({
           id: doc.id,
           data: data,
-          ref: doc.ref
+          ref: doc.ref,
+          dateDocId: dateDocId,
+          patientType: patientType
         });
       }
     }
-    
-    console.log(`📊 মোট ${oldDocuments.length}টি পুরনো ডকুমেন্ট পাওয়া গেছে`);
+
+    console.log(`📊 মোট ${oldDocuments.length}টি পুরনো ডকুমেন্ট পাওয়া গেছে`);
     if (oldDocuments.length === 0) {
       console.log("✅ কোনো পুরনো ডেটা নেই।");
       return;
     }
-    
+
     const BATCH_SIZE = 500;
     const batches = [];
     for (let i = 0; i < oldDocuments.length; i += BATCH_SIZE) {
       batches.push(oldDocuments.slice(i, i + BATCH_SIZE));
     }
-    console.log(`📦 ${batches.length}টি ব্যাচ তৈরি করা হয়েছে (প্রতি ব্যাচে ${BATCH_SIZE}টি)`);
-    
+    console.log(`📦 ${batches.length}টি ব্যাচ তৈরি করা হয়েছে (প্রতি ব্যাচে ${BATCH_SIZE}টি)`);
+
     for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
       const batch = batches[batchIndex];
       const dbBatch = db.batch();
-      
+
       console.log(`🔄 ব্যাচ ${batchIndex + 1}/${batches.length} প্রসেস করা হচ্ছে...`);
-      
-      for (const doc of batch) {
+
+      for (const item of batch) {
         try {
-          // **🔴 এখানে পরিবর্তন – সাব-কালেকশনে সংরক্ষণ**
-          const patientType = doc.data.patientType || doc.data.type || 'new';
+          // মূল ডাটাবেজের মতোই ঠিক একই স্ট্রাকচারে আর্কাইভ ডাটাবেজে সেভ করা হচ্ছে
           const archiveRef = archiveDb
             .collection('archived_appointments')
-            .doc(doc.id)               // প্যারেন্ট ডকুমেন্ট
-            .collection(patientType)   // সাব-কালেকশন 'new' বা 'old'
-            .doc(doc.id);              // একই আইডি দিয়ে ডকুমেন্ট
+            .doc(item.dateDocId)        // প্যারেন্ট ডকুমেন্ট (yymmdd)
+            .collection(item.patientType)// সাব-কালেকশন ('new' বা 'old')
+            .doc(item.id);              // সিরিয়াল আইডি (yymmdd-serial)
 
           await archiveRef.set({
-            ...doc.data,
+            ...item.data,
             archivedAt: firebase.firestore.FieldValue.serverTimestamp(),
             archivedBatch: batchIndex + 1,
             archivedDate: new Date().toISOString()
           });
-          
-          dbBatch.delete(doc.ref);
+
+          dbBatch.delete(item.ref);
           archiveCount++;
-          
+
         } catch (error) {
-          console.error(`❌ ডকুমেন্ট ${doc.id} আর্কাইভ করতে সমস্যা:`, error);
+          console.error(`❌ ডকুমেন্ট ${item.id} আর্কাইভ করতে সমস্যা:`, error);
         }
       }
-      
+
       try {
         await dbBatch.commit();
         deleteCount += batch.length;
-        console.log(`✅ ব্যাচ ${batchIndex + 1} সম্পূর্ণ: ${batch.length}টি ডকুমেন্ট ডিলিট করা হয়েছে`);
+        console.log(`✅ ব্যাচ ${batchIndex + 1} সম্পূর্ণ: ${batch.length}টি ডকুমেন্ট ডিলিট করা হয়েছে`);
         await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (error) {
         console.error(`❌ ব্যাচ ${batchIndex + 1} কমিট করতে সমস্যা:`, error);
       }
     }
-    
-    console.log(`🎉 সম্পূর্ণ! ${archiveCount}টি ডকুমেন্ট আর্কাইভ করা হয়েছে এবং ${deleteCount}টি ডকুমেন্ট ডিলিট করা হয়েছে।`);
-    
+
+    console.log(`🎉 সম্পূর্ণ! ${archiveCount}টি ডকুমেন্ট আর্কাইভ করা হয়েছে এবং ${deleteCount}টি ডকুমেন্ট ডিলিট করা হয়েছে।`);
+
   } catch (error) {
-    console.error("❌ অটো-আর্কাইভ এবং ডিলিট করার সময় সমস্যা হয়েছে:", error);
+    console.error("❌ অটো-আর্কাইভ এবং ডিলিট করার সময় সমস্যা হয়েছে:", error);
   }
 }
 
